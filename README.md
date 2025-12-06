@@ -4,6 +4,8 @@ Web-based administration interface for Essential Open Source, delivered as a sin
 
 > Pending: implementation of the Protégé GraphWidget.
 
+This frontend was built to work with the API project [`terryvel/essential-open-api`](https://github.com/terryvel/essential-open-api), which exposes the backend endpoints used here.
+
 ## Demo
 
 ![App navigation walkthrough](assets/nav-capture.gif)
