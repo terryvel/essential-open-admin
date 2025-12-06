@@ -1,0 +1,3477 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Essential Open Admin</title>
+  <link rel="stylesheet" href="https://unpkg.com/carbon-components/css/carbon-components.min.css">
+  <style>
+    :root {
+      --divider-width: 8px;
+      --min-col-width: 220px;
+    }
+
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", sans-serif;
+      background: #f4f4f4;
+      color: #161616;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #161616;
+      color: #f4f4f4;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: 0 1px 0 #e0e0e0;
+      justify-content: space-between;
+    }
+
+    header .title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .layout {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    .panel {
+      flex: 1 1 0;
+      min-width: var(--min-col-width);
+      background: #ffffff;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel:last-of-type {
+      border-right: none;
+    }
+
+    .panel-header {
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .panel-body {
+      padding: 0.75rem 1rem;
+      overflow: hidden;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .filter-block {
+      margin-bottom: 0.75rem;
+    }
+
+    .divider {
+      width: var(--divider-width);
+      cursor: col-resize;
+      background: transparent;
+      position: relative;
+    }
+
+    .divider::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      transform: translateX(-50%);
+      background: transparent;
+      transition: background 0.2s ease;
+    }
+
+    .divider:hover::before,
+    .divider.dragging::before {
+      background: #0f62fe;
+    }
+
+    .tree {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      flex: 1;
+      overflow: auto;
+      outline: none;
+    }
+
+    .form-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .form-loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1.5rem;
+      flex: 1;
+    }
+
+    .form-loading-text {
+      margin: 0;
+      color: #525252;
+      font-size: 0.95rem;
+    }
+
+    .tree .node {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.4rem;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tree .node:hover {
+      background: #f2f4f8;
+    }
+
+    .tree .node.selected {
+      background: #e0e7ff;
+      border: 1px solid #0f62fe;
+    }
+
+    .tree .children {
+      list-style: none;
+      padding-left: 1.25rem;
+      margin: 0.05rem 0;
+    }
+
+    .tree .caret {
+      transition: transform 0.2s ease;
+      display: inline-block;
+    }
+
+    .actions {
+      width: 100%;
+    }
+
+    .tooltip-trigger {
+      position: relative;
+    }
+
+    .tooltip-trigger::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 125%;
+      right: 0;
+      background: #161616;
+      color: #fff;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.12s ease;
+      z-index: 10;
+    }
+
+    .tooltip-trigger::before {
+      content: "";
+      position: absolute;
+      bottom: 115%;
+      right: 8px;
+      border: 6px solid transparent;
+      border-top-color: #161616;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+      z-index: 10;
+    }
+
+    .tooltip-trigger:hover::after,
+    .tooltip-trigger:focus-visible::after,
+    .tooltip-trigger:hover::before,
+    .tooltip-trigger:focus-visible::before {
+      opacity: 1;
+    }
+
+    .tree .collapsed>.node .caret {
+      transform: rotate(-90deg);
+    }
+
+    .tree .collapsed>.children {
+      display: none;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .notification-area {
+      margin-bottom: 0.75rem;
+    }
+
+    .form-group.hidden {
+      display: none;
+    }
+
+    .bx--form-item {
+      padding-top: 0.5rem;
+    }
+
+    .instance-tree {
+      padding-left: 0;
+    }
+
+    .form .actions {
+      width: 100%;
+    }
+
+    .bx--select-input[multiple] {
+      height: auto;
+      min-height: calc(2.5rem * 4);
+      padding: 0.25rem;
+    }
+
+    .bx--select-input[multiple] option {
+      padding: 0.35rem 0.5rem;
+    }
+
+    .bx--tabs {
+      margin-bottom: 0.75rem;
+    }
+
+    .bx--tabs__nav {
+      overflow-x: auto;
+      flex-wrap: nowrap;
+    }
+
+    .bx--tabs__nav-item {
+      flex: 0 0 auto;
+      width: auto;
+      white-space: nowrap;
+    }
+
+    .bx--modal.hidden {
+      display: none;
+    }
+
+    .select-instance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .select-instance-grid .column {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .select-instance-grid .bx--select-input[multiple] {
+      min-height: 12rem;
+    }
+
+    .bx--search {
+      position: relative;
+    }
+
+    .bx--search .bx--search-input {
+      padding-left: 2.5rem;
+    }
+
+    .bx--search .bx--search-magnifier {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      fill: currentColor;
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Publish button styling */
+    #publish-btn {
+      color: #ffffff;
+    }
+
+    #publish-btn:hover {
+      color: #ffffff;
+      border-color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Publish modal layout */
+    .publish-modal-content {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .publish-form-grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .publish-status-block {
+      display: grid;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+    }
+
+    .publish-status-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .publish-progress {
+      position: relative;
+      height: 10px;
+      background: #e0e0e0;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .publish-progress__bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #4589ff, #0f62fe);
+      transition: width 0.2s ease;
+    }
+
+    .publish-progress__value {
+      text-align: right;
+      font-size: 0.85rem;
+      color: #525252;
+    }
+
+    #publish-status-log {
+      min-height: 140px;
+      resize: vertical;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="title">Essential Open Admin</div>
+    <div>
+      <button id="publish-btn" type="button" class="bx--btn bx--btn--ghost bx--btn--sm bx--btn--icon-before"
+        aria-label="Publish">
+        <svg aria-hidden="true" focusable="false" class="bx--btn__icon" viewBox="0 0 32 32">
+          <path d="M26 18v8H6v-8H4v8a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-8z"></path>
+          <path d="M12.8 12.6 16 9.4l3.2 3.2 1.4-1.4L16 6.6l-4.6 4.6z"></path>
+          <path d="M15 6h2v14h-2z"></path>
+        </svg>
+        Publish
+      </button>
+    </div>
+  </header>
+
+  <div class="layout" id="layout">
+    <section class="panel" id="col-a" style="flex-basis: 20%;">
+      <div class="panel-header">Class Browser</div>
+      <div class="panel-body">
+        <div style="display: flex; justify-content: center; margin-bottom: 0.75rem;">
+          <img src="the-essential-project.png" alt="The Essential Project" style="max-width: 140px; height: auto;">
+        </div>
+        <div class="filter-block" style="padding-top: 0.75rem;">
+          <label class="bx--label" for="tree-a-filter">Search</label>
+          <input id="tree-a-filter" class="bx--text-input" type="text" placeholder="Type to filter items">
+        </div>
+        <ul class="tree" id="tree-a"></ul>
+      </div>
+    </section>
+
+    <div class="divider" data-left="col-a" data-right="col-b"></div>
+
+    <section class="panel" id="col-b" style="flex-basis: 20%;">
+      <div class="panel-header">Instance Browser</div>
+      <div class="panel-body">
+        <div class="actions" style="justify-content: flex-end; margin-bottom: 0.75rem;">
+          <button type="button" class="bx--btn bx--btn--primary bx--btn--icon-only bx--btn--sm tooltip-trigger"
+            aria-label="New" data-tooltip="New" disabled>
+            <svg aria-hidden="true" focusable="false" class="bx--btn__icon" viewBox="0 0 32 32">
+              <path d="M17 15h6v2h-6v6h-2v-6H9v-2h6V9h2z"></path>
+            </svg>
+          </button>
+          <button type="button" class="bx--btn bx--btn--secondary bx--btn--icon-only bx--btn--sm tooltip-trigger"
+            aria-label="Copy" data-tooltip="Copy" disabled>
+            <svg aria-hidden="true" focusable="false" class="bx--btn__icon" viewBox="0 0 32 32">
+              <path d="M28 10v18H12V10zm-2 2H14v14h12z"></path>
+              <path d="M8 4h14v2H8v16H6V6a2 2 0 0 1 2-2z"></path>
+            </svg>
+          </button>
+          <button type="button" class="bx--btn bx--btn--danger--tertiary bx--btn--icon-only bx--btn--sm tooltip-trigger"
+            aria-label="Delete" data-tooltip="Delete" disabled>
+            <svg aria-hidden="true" focusable="false" class="bx--btn__icon" viewBox="0 0 32 32">
+              <path d="M12 12h2v12h-2zM18 12h2v12h-2z"></path>
+              <path
+                d="M28 6h-7V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v2H4v2h2v20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8h2Zm-14-2h6v2h-6Zm12 24H8V8h16Z">
+              </path>
+            </svg>
+          </button>
+        </div>
+        <div class="filter-block">
+          <label class="bx--label" for="tree-b-filter">Search</label>
+          <input id="tree-b-filter" class="bx--text-input" type="text" placeholder="Type to filter items">
+        </div>
+        <ul class="tree" id="tree-b"></ul>
+      </div>
+    </section>
+
+    <div class="divider" data-left="col-b" data-right="col-c"></div>
+
+    <section class="panel" id="col-c" style="flex-basis: 60%;">
+      <div class="panel-header">Instance Editor</div>
+      <div class="panel-body">
+        <div class="form-scroll">
+          <div class="notification-area">
+            <div id="form-error" class="bx--inline-notification bx--inline-notification--error hidden" role="alert">
+              <div class="bx--inline-notification__details">
+                <div class="bx--inline-notification__text-wrapper">
+                  <p class="bx--inline-notification__title">Error</p>
+                  <p id="form-error-message" class="bx--inline-notification__subtitle">Error loading form spec.</p>
+                </div>
+              </div>
+              <button type="button" class="bx--inline-notification__close-button" aria-label="close notification"
+                onclick="hideFormError()">
+                <svg focusable="false" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" width="16"
+                  height="16" viewBox="0 0 32 32" aria-hidden="true">
+                  <path
+                    d="M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+                  </path>
+                </svg>
+              </button>
+            </div>
+            <div id="delete-notice" class="bx--inline-notification bx--inline-notification--info hidden" role="status">
+              <div class="bx--inline-notification__details">
+                <div class="bx--inline-notification__text-wrapper">
+                  <p class="bx--inline-notification__title">Deleted</p>
+                  <p id="delete-notice-message" class="bx--inline-notification__subtitle">Item removed.</p>
+                </div>
+              </div>
+              <button type="button" class="bx--inline-notification__close-button" aria-label="close notification"
+                onclick="hideDeleteNotice()">
+                <svg focusable="false" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" width="16"
+                  height="16" viewBox="0 0 32 32" aria-hidden="true">
+                  <path
+                    d="M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+                  </path>
+                </svg>
+              </button>
+            </div>
+            <div id="save-notice" class="bx--inline-notification bx--inline-notification--success hidden" role="alert">
+              <div class="bx--inline-notification__details">
+                <div class="bx--inline-notification__text-wrapper">
+                  <p class="bx--inline-notification__title">Instance updated successfully</p>
+                  <p class="bx--inline-notification__subtitle">Instance updated successfully.</p>
+                </div>
+              </div>
+              <button type="button" class="bx--inline-notification__close-button" aria-label="close notification"
+                onclick="document.getElementById('save-notice').classList.add('hidden')">
+                <svg focusable="false" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" width="16"
+                  height="16" viewBox="0 0 32 32" aria-hidden="true">
+                  <path
+                    d="M24 9.4L22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+                  </path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div id="form-placeholder" class="bx--inline-notification bx--inline-notification--info">
+            <div class="bx--inline-notification__details">
+              <div class="bx--inline-notification__text-wrapper">
+                <p class="bx--inline-notification__title">No item selected</p>
+                <p class="bx--inline-notification__subtitle">Select an item in Column 2 to load the form.</p>
+              </div>
+            </div>
+          </div>
+          <div id="form-loading" class="form-loading-container hidden">
+            <div class="bx--loading" data-loading>
+              <svg class="bx--loading__svg" viewBox="0 0 100 100">
+                <circle class="bx--loading__stroke" cx="50" cy="50" r="44"></circle>
+              </svg>
+            </div>
+            <p class="form-loading-text">Saving instance...</p>
+          </div>
+          <form id="details-form" class="bx--form hidden">
+            <div id="form-tabs" class="bx--tabs hidden" data-tabs>
+              <div class="bx--tabs-trigger" tabindex="0">
+                <a href="javascript:void(0)" id="form-tabs-trigger-text" class="bx--tabs-trigger-text">Tabs</a>
+                <svg aria-hidden="true" class="bx--tabs-trigger-icon" width="16" height="16" viewBox="0 0 16 16">
+                  <path d="M8 11L3 6l1.4-1.4L8 8.2l3.6-3.6L13 6z"></path>
+                </svg>
+              </div>
+              <ul id="form-tab-list" class="bx--tabs__nav" role="tablist"></ul>
+            </div>
+            <div id="form-fields"></div>
+            <div class="actions">
+              <button type="button" id="save-btn" class="bx--btn bx--btn--primary">Save</button>
+              <button type="button" id="cancel-btn" class="bx--btn bx--btn--tertiary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modals -->
+  <div id="select-instance-modal" class="bx--modal hidden" role="dialog" aria-modal="true"
+    aria-labelledby="select-instance-modal-label" aria-describedby="select-instance-modal-heading">
+    <div class="bx--modal-container">
+      <div class="bx--modal-header">
+        <p id="select-instance-modal-label" class="bx--modal-header__label bx--type-delta">Select</p>
+        <p id="select-instance-modal-heading" class="bx--modal-header__heading bx--type-beta">Select Instance</p>
+        <button class="bx--modal-close" type="button" data-modal-close aria-label="close modal">
+          <svg focusable="false" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"
+            fill="currentColor" width="20" height="20" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+            </path>
+          </svg>
+        </button>
+      </div>
+      <div class="bx--modal-content">
+        <div class="select-instance-grid">
+          <div class="column">
+            <p class="bx--label">Allowed Classes</p>
+            <div class="bx--select">
+              <select id="allowed-classes-select" class="bx--select-input" multiple size="8">
+                <option>Class A</option>
+                <option>Class B</option>
+                <option>Class C</option>
+              </select>
+            </div>
+            <div class="bx--search bx--search--sm" role="search">
+              <label class="bx--label" for="allowed-classes-search">Search</label>
+              <input class="bx--search-input" type="text" id="allowed-classes-search" placeholder="Filter classes"
+                aria-label="Filter allowed classes">
+              <svg class="bx--search-magnifier" focusable="false" preserveAspectRatio="xMidYMid meet"
+                fill="currentColor" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M15,14.3L10.7,10c1.9-2.3,1.6-5.8-0.7-7.7S4.2,0.7,2.3,3S0.7,8.8,3,10.7c2,1.7,5,1.7,7,0l4.3,4.3L15,14.3z M2,6.5 C2,4,4,2,6.5,2S11,4,11,6.5S9,11,6.5,11S2,9,2,6.5z">
+                </path>
+              </svg>
+              <button class="bx--search-close bx--search-close--hidden" type="button" aria-label="Clear search">
+                <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                  viewBox="0 0 32 32">
+                  <path
+                    d="M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+                  </path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="column">
+            <p class="bx--label">Instances</p>
+            <div class="bx--select">
+              <select id="instances-select" class="bx--select-input" multiple size="8">
+                <option>Instance 1</option>
+                <option>Instance 2</option>
+                <option>Instance 3</option>
+              </select>
+            </div>
+            <div class="bx--search bx--search--sm" role="search">
+              <label class="bx--label" for="instances-search">Search</label>
+              <input class="bx--search-input" type="text" id="instances-search" placeholder="Filter instances"
+                aria-label="Filter instances">
+              <svg class="bx--search-magnifier" focusable="false" preserveAspectRatio="xMidYMid meet"
+                fill="currentColor" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M15,14.3L10.7,10c1.9-2.3,1.6-5.8-0.7-7.7S4.2,0.7,2.3,3S0.7,8.8,3,10.7c2,1.7,5,1.7,7,0l4.3,4.3L15,14.3z M2,6.5 C2,4,4,2,6.5,2S11,4,11,6.5S9,11,6.5,11S2,9,2,6.5z">
+                </path>
+              </svg>
+              <button class="bx--search-close bx--search-close--hidden" type="button" aria-label="Clear search">
+                <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                  viewBox="0 0 32 32">
+                  <path
+                    d="M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+                  </path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bx--modal-footer">
+        <button class="bx--btn bx--btn--tertiary" type="button" data-modal-close>Cancel</button>
+        <button id="select-instance-confirm-btn" class="bx--btn bx--btn--primary" type="button">
+          Select
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <template id="instance-modal-template">
+    <div class="bx--modal is-visible" role="dialog" aria-modal="true" aria-labelledby="instance-modal-label"
+      aria-describedby="instance-modal-heading">
+      <div class="bx--modal-container">
+        <div class="bx--modal-header">
+          <p id="instance-modal-label" class="bx--modal-header__label bx--type-delta">Instance</p>
+          <p id="instance-modal-heading" class="bx--modal-header__heading bx--type-beta">Instance</p>
+          <button class="bx--modal-close" type="button" data-modal-close aria-label="close modal">
+            <svg focusable="false" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"
+              fill="currentColor" width="20" height="20" viewBox="0 0 32 32" aria-hidden="true">
+              <path
+                d="M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+              </path>
+            </svg>
+          </button>
+        </div>
+        <div class="bx--modal-content">
+          <div class="form-loading-container hidden" data-role="loading">
+            <div class="bx--loading" data-loading>
+              <svg class="bx--loading__svg" viewBox="0 0 100 100">
+                <circle class="bx--loading__stroke" cx="50" cy="50" r="44"></circle>
+              </svg>
+            </div>
+            <p class="form-loading-text">Loading...</p>
+          </div>
+          <div class="bx--tabs hidden" data-role="tabs">
+            <div class="bx--tabs-trigger" tabindex="0">
+              <a href="javascript:void(0)" class="bx--tabs-trigger-text">Tabs</a>
+              <svg aria-hidden="true" class="bx--tabs-trigger-icon" width="16" height="16" viewBox="0 0 16 16">
+                <path d="M8 11L3 6l1.4-1.4L8 8.2l3.6-3.6L13 6z"></path>
+              </svg>
+            </div>
+            <ul class="bx--tabs__nav" role="tablist"></ul>
+          </div>
+          <div data-role="form-fields"></div>
+        </div>
+        <div class="bx--modal-footer">
+          <button class="bx--btn bx--btn--tertiary" type="button" data-modal-close>Cancel</button>
+          <button class="bx--btn bx--btn--primary" type="button" data-role="save-btn">Save</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <div id="select-class-modal" class="bx--modal hidden" role="dialog" aria-modal="true"
+    aria-labelledby="select-class-modal-label" aria-describedby="select-class-modal-heading">
+    <div class="bx--modal-container">
+      <div class="bx--modal-header">
+        <p id="select-class-modal-label" class="bx--modal-header__label bx--type-delta">Class</p>
+        <p id="select-class-modal-heading" class="bx--modal-header__heading bx--type-beta">Select Class</p>
+        <button class="bx--modal-close" type="button" data-modal-close aria-label="close modal">
+          <svg focusable="false" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"
+            fill="currentColor" width="20" height="20" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+            </path>
+          </svg>
+        </button>
+      </div>
+      <div class="bx--modal-content">
+        <div class="bx--modal-content__text">
+          <div class="bx--select">
+            <select id="select-class-list" multiple class="bx--select-input" size="8">
+              <!-- Options will be populated dynamically -->
+            </select>
+          </div>
+          <div class="bx--search bx--search--sm" role="search" style="margin-top: 1rem;">
+            <label class="bx--label" for="select-class-search">Search</label>
+            <input class="bx--search-input" type="text" id="select-class-search" placeholder="Filter classes"
+              aria-label="Filter classes">
+            <svg class="bx--search-magnifier" focusable="false" preserveAspectRatio="xMidYMid meet" fill="currentColor"
+              width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M15,14.3L10.7,10c1.9-2.3,1.6-5.8-0.7-7.7S4.2,0.7,2.3,3S0.7,8.8,3,10.7c2,1.7,5,1.7,7,0l4.3,4.3L15,14.3z M2,6.5 C2,4,4,2,6.5,2S11,4,11,6.5S9,11,6.5,11S2,9,2,6.5z">
+              </path>
+            </svg>
+            <button class="bx--search-close bx--search-close--hidden" type="button" aria-label="Clear search">
+              <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                viewBox="0 0 32 32">
+                <path
+                  d="M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+                </path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="bx--modal-footer">
+        <button class="bx--btn bx--btn--tertiary" type="button" data-modal-close>Cancel</button>
+        <button class="bx--btn bx--btn--primary" type="button">Select</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="delete-confirm-modal" class="bx--modal hidden" role="dialog" aria-modal="true"
+    aria-labelledby="delete-confirm-modal-label" aria-describedby="delete-confirm-modal-heading">
+    <div class="bx--modal-container">
+      <div class="bx--modal-header">
+        <p id="delete-confirm-modal-label" class="bx--modal-header__label bx--type-delta">Delete</p>
+        <p id="delete-confirm-modal-heading" class="bx--modal-header__heading bx--type-beta">Confirm deletion</p>
+        <button class="bx--modal-close" type="button" data-modal-close aria-label="close modal">
+          <svg focusable="false" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"
+            fill="currentColor" width="20" height="20" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+            </path>
+          </svg>
+        </button>
+      </div>
+      <div class="bx--modal-content">
+        <p class="bx--modal-content__text">Deseja realmente deletar esta instância?</p>
+      </div>
+      <div class="bx--modal-footer">
+        <button class="bx--btn bx--btn--tertiary" type="button" data-modal-close>Cancelar</button>
+        <button id="delete-confirm-btn" class="bx--btn bx--btn--danger" type="button">Deletar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="publish-modal" class="bx--modal hidden" role="dialog" aria-modal="true" aria-labelledby="publish-modal-label"
+    aria-describedby="publish-modal-heading">
+    <div class="bx--modal-container">
+      <div class="bx--modal-header">
+        <p id="publish-modal-label" class="bx--modal-header__label bx--type-delta">Publish</p>
+        <p id="publish-modal-heading" class="bx--modal-header__heading bx--type-beta">
+          publishes snapshots of your repository to your chosen Essential Viewer
+        </p>
+        <button class="bx--modal-close" type="button" data-modal-close aria-label="close modal">
+          <svg focusable="false" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"
+            fill="currentColor" width="20" height="20" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z">
+            </path>
+          </svg>
+        </button>
+      </div>
+      <div class="bx--modal-content">
+        <div class="publish-modal-content">
+          <div class="bx--form publish-form-grid">
+            <div class="bx--form-item">
+              <label class="bx--label" for="publish-viewer-url">Essential Viewer URL</label>
+              <div class="bx--text-input__field-wrapper">
+                <input id="publish-viewer-url" class="bx--text-input" type="url" placeholder="__VIEWER_URL__"
+                  value="__VIEWER_URL__" />
+              </div>
+            </div>
+            <div class="bx--form-item">
+              <label class="bx--label" for="publish-viewer-user">User</label>
+              <div class="bx--text-input__field-wrapper">
+                <input id="publish-viewer-user" class="bx--text-input" type="text" placeholder="__VIEWER_USER__"
+                  value="__VIEWER_USER__" />
+              </div>
+            </div>
+            <div class="bx--form-item">
+              <label class="bx--label" for="publish-viewer-pwd">Password</label>
+              <div class="bx--text-input__field-wrapper">
+                <input id="publish-viewer-pwd" class="bx--text-input" type="password" placeholder="__VIEWER_PWD__"
+                  value="__VIEWER_PWD__" />
+              </div>
+            </div>
+          </div>
+
+          <div class="publish-status-block">
+            <div class="publish-status-header">
+              <p class="bx--label" style="margin: 0;">Publish status</p>
+              <span id="publish-status-badge" class="bx--tag bx--tag--cool-gray">IDLE</span>
+            </div>
+            <div>
+              <div id="publish-progress-track" class="publish-progress" role="progressbar" aria-valuemin="0"
+                aria-valuemax="100" aria-valuenow="0">
+                <div id="publish-progress-bar" class="publish-progress__bar"></div>
+              </div>
+              <div id="publish-progress-value" class="publish-progress__value">0%</div>
+            </div>
+            <div class="bx--form-item">
+              <label class="bx--label" for="publish-status-log">Logs</label>
+              <div class="bx--text-area__wrapper">
+                <textarea id="publish-status-log" class="bx--text-area" readonly>Waiting for publish job...</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bx--modal-footer">
+        <button class="bx--btn bx--btn--tertiary" type="button" data-modal-close>Close</button>
+        <button id="publish-submit-btn" class="bx--btn bx--btn--primary" type="button">Publish repository</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ------------------------------ DATA MODELS ------------------------------
+    const apiOrigin = "__API_ORIGIN__";
+    const apiBase = `${apiOrigin}/api/classes`;
+    const instanceApiBase = `${apiOrigin}/api/instances`;
+    let treeAData = [];
+    let currentTreeBData = [];
+    const expandedNodes = new Set();
+    let formSpecs = null;
+    let activeFormGroup = null;
+    let currentInstanceData = null;
+    let activeWidgetWrapper = null; // Referência para o widget que abriu o modal
+    let isCreatingNewInstance = false;
+    let pendingDeleteId = null;
+
+    // --------------------------- STATE & REFERENCES --------------------------
+    const treeAEl = document.getElementById("tree-a");
+    const treeBEl = document.getElementById("tree-b");
+    const filterInputA = document.getElementById("tree-a-filter");
+    const filterInputB = document.getElementById("tree-b-filter");
+    const saveNotice = document.getElementById("save-notice");
+    const saveBtn = document.getElementById("save-btn");
+    const treeBNewBtn = document.querySelector("#col-b .actions button[aria-label='New']");
+    const treeBCopyBtn = document.querySelector("#col-b .actions button[aria-label='Copy']");
+    const treeBDeleteBtn = document.querySelector("#col-b .actions button[aria-label='Delete']");
+    const formTabs = document.getElementById("form-tabs");
+    const formTabList = document.getElementById("form-tab-list");
+    const formTabsTriggerText = document.getElementById("form-tabs-trigger-text");
+    const formErrorNotice = document.getElementById("form-error");
+    const formErrorMessage = document.getElementById("form-error-message");
+    const deleteNotice = document.getElementById("delete-notice");
+    const deleteNoticeMessage = document.getElementById("delete-notice-message");
+    const form = document.getElementById("details-form");
+    const formPlaceholder = document.getElementById("form-placeholder");
+    const formLoading = document.getElementById("form-loading");
+    const formFields = document.getElementById("form-fields");
+    const selectInstanceModal = document.getElementById("select-instance-modal");
+    // instanceModal is now a template
+    const selectClassModal = document.getElementById("select-class-modal");
+    const deleteConfirmModal = document.getElementById("delete-confirm-modal");
+    const deleteConfirmBtn = document.getElementById("delete-confirm-btn");
+    const allowedClassesSelect = document.getElementById("allowed-classes-select");
+    const instancesSelect = document.getElementById("instances-select");
+    const allowedClassesSearch = document.getElementById("allowed-classes-search");
+    const instancesSearch = document.getElementById("instances-search");
+    const allowedClassesClear = selectInstanceModal?.querySelector("#allowed-classes-search ~ .bx--search-close");
+    const instancesClear = selectInstanceModal?.querySelector("#instances-search ~ .bx--search-close");
+    const selectInstanceConfirmBtn = document.getElementById("select-instance-confirm-btn");
+    const selectClassList = document.getElementById("select-class-list");
+    const selectClassSearch = document.getElementById("select-class-search");
+    const selectClassClear = selectClassModal?.querySelector("#select-class-search ~ .bx--search-close");
+    const selectClassConfirmBtn = selectClassModal?.querySelector(".bx--modal-footer .bx--btn--primary");
+    let selectClassSource = [];
+    const publishBtn = document.getElementById("publish-btn");
+    const publishModal = document.getElementById("publish-modal");
+    const publishViewerUrlInput = document.getElementById("publish-viewer-url");
+    const publishViewerUserInput = document.getElementById("publish-viewer-user");
+    const publishViewerPwdInput = document.getElementById("publish-viewer-pwd");
+    const publishStatusBadge = document.getElementById("publish-status-badge");
+    const publishProgressBar = document.getElementById("publish-progress-bar");
+    const publishProgressValue = document.getElementById("publish-progress-value");
+    const publishProgressTrack = document.getElementById("publish-progress-track");
+    const publishStatusLog = document.getElementById("publish-status-log");
+    const publishSubmitBtn = document.getElementById("publish-submit-btn");
+    const publishApiBase = `${apiOrigin}/api`;
+    let isPublishPolling = false;
+    const publishStatusClassMap = {
+      RUNNING: "bx--tag--cyan",
+      SUCCESS: "bx--tag--green",
+      ERROR: "bx--tag--red",
+      UNKNOWN: "bx--tag--cool-gray",
+      IDLE: "bx--tag--cool-gray",
+    };
+
+    if (selectClassConfirmBtn) {
+      selectClassConfirmBtn.addEventListener("click", () => {
+        const selectedOption = selectClassList.selectedOptions[0];
+        if (!selectedOption) return;
+
+        const className = selectedOption.value;
+        const isAbstract = selectedOption.getAttribute("isAbstract") === "true";
+
+        if (className && !isAbstract) {
+          hideModal(selectClassModal);
+          openInstanceModal("new-instance", className);
+        }
+      });
+    }
+
+    if (selectClassList) {
+      selectClassList.addEventListener("change", () => {
+        const selectedOption = selectClassList.selectedOptions[0];
+        if (selectClassConfirmBtn) {
+          const isAbstract = selectedOption?.getAttribute("isAbstract") === "true";
+          selectClassConfirmBtn.disabled = !selectedOption || isAbstract;
+        }
+      });
+    }
+
+    if (selectInstanceConfirmBtn) {
+      selectInstanceConfirmBtn.addEventListener("click", () => {
+        if (!activeWidgetWrapper) return;
+
+        const selectedInstanceOption = instancesSelect.selectedOptions[0];
+        if (!selectedInstanceOption || !selectedInstanceOption.value) {
+          hideModal(selectInstanceModal);
+          return;
+        }
+
+        const widgetType = activeWidgetWrapper.dataset.widget;
+        const targetSelect = activeWidgetWrapper.querySelector("select");
+
+        if (targetSelect) {
+          // Evita adicionar duplicatas
+          if (targetSelect.querySelector(`option[value="${selectedInstanceOption.value}"]`)) {
+            hideModal(selectInstanceModal);
+            return;
+          }
+
+          const newOption = document.createElement("option");
+          newOption.value = selectedInstanceOption.value;
+          newOption.textContent = selectedInstanceOption.textContent;
+          const selectedClassOption = allowedClassesSelect?.selectedOptions?.[0];
+          if (selectedClassOption) {
+            newOption.dataset.className = selectedClassOption.value || "";
+          }
+          newOption.selected = true; // Seleciona o novo item
+
+          // Se for um select single, remove a opção anterior
+          if (widgetType === "InstanceFieldWidget") {
+            targetSelect.innerHTML = "";
+          }
+          targetSelect.appendChild(newOption);
+          targetSelect.dispatchEvent(new Event("change", { bubbles: true }));
+          if (widgetType === "InstanceListWidget") {
+            syncInstanceListHidden(activeWidgetWrapper);
+          }
+          if (widgetType === "StringListWidget") {
+            syncStringListHidden(activeWidgetWrapper);
+          }
+        }
+        hideModal(selectInstanceModal);
+      });
+    }
+
+    if (allowedClassesSelect) {
+      instancesSelect?.addEventListener("change", () => {
+        const confirmBtn = selectInstanceModal.querySelector("#select-instance-confirm-btn");
+        if (confirmBtn) {
+          const hasSelection = instancesSelect.selectedIndex > -1 && instancesSelect.value !== "";
+          confirmBtn.disabled = !hasSelection;
+        }
+      });
+
+      allowedClassesSelect.addEventListener("change", async (event) => {
+        const select = event.currentTarget;
+        const selectedOption = select.options[select.selectedIndex];
+
+        // Desabilita o botão de confirmação ao recarregar as instâncias
+        const confirmBtn = selectInstanceModal.querySelector("#select-instance-confirm-btn");
+        if (confirmBtn) {
+          confirmBtn.disabled = true;
+        }
+
+        instancesSelect.innerHTML = "";
+        instancesSource = [];
+        filterSelectOptions(instancesSelect, instancesSource, instancesSearch?.value || "");
+
+        if (selectedOption) {
+          const isAbstract = selectedOption.getAttribute("isAbstract");
+
+          if (isAbstract === "true") {
+            return; // Limpa e sai se for abstrato
+          }
+
+          const className = selectedOption.value;
+          if (!className) return;
+
+          try {
+            instancesSelect.innerHTML = '<option disabled>Carregando...</option>';
+            const url = `${apiBase}/${encodeURIComponent(className)}/instances?slots=name&maxdept=1&directinstances=true`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Falha ao carregar instâncias para ${className}`);
+            const payload = await response.json();
+
+            const instanceItems = (payload.instances || [])
+              .map((inst) => ({
+                value: inst.id,
+                text: inst.name || inst.id,
+              }))
+              .sort((a, b) => a.text.localeCompare(b.text));
+            instancesSource = instanceItems;
+            filterSelectOptions(instancesSelect, instancesSource, instancesSearch?.value || "");
+          } catch (err) {
+            console.error(err);
+            instancesSelect.innerHTML = '<option disabled>Erro ao carregar</option>';
+          }
+        }
+      });
+    }
+
+    let selectedTreeA = null;
+    let selectedTreeAPath = "";
+    let selectedTreeAKey = "";
+    let selectedTreeB = null;
+    let allowedClassesSource = [];
+    let instancesSource = [];
+
+    async function fetchClassInfo(classId) {
+      const url = `${apiBase}/${encodeURIComponent(classId)}/`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Falha ao carregar classe ${classId}`);
+      }
+      return response.json();
+    }
+
+    function snapshotOptions(selectEl) {
+      if (!selectEl) return [];
+      return Array.from(selectEl.options || []).map((opt) => ({
+        value: opt.value || opt.textContent,
+        text: opt.textContent || "",
+        isAbstract: opt.getAttribute("isAbstract"),
+      }));
+    }
+
+    function filterSelectOptions(selectEl, source, query) {
+      if (!selectEl) return;
+      const selectedValues = new Set(Array.from(selectEl.selectedOptions || []).map((opt) => opt.value));
+      const normalized = (query || "").toLowerCase();
+      const list = !normalized
+        ? source
+        : source.filter((item) => (item.text || "").toLowerCase().includes(normalized));
+      selectEl.innerHTML = "";
+      if (!list.length) {
+        const option = document.createElement("option");
+        option.textContent = "No results";
+        option.disabled = true;
+        selectEl.appendChild(option);
+        return;
+      }
+      list.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.text;
+        option.selected = selectedValues.has(item.value);
+        if (item.isAbstract) {
+          option.setAttribute("isAbstract", item.isAbstract);
+        }
+        selectEl.appendChild(option);
+      });
+    }
+
+    function attachSearchFilter(inputEl, clearBtn, selectEl, getSource) {
+      if (!inputEl || !selectEl) return;
+      const apply = () => {
+        const query = inputEl.value.trim();
+        if (clearBtn) {
+          clearBtn.classList.toggle("bx--search-close--hidden", !query.length);
+        }
+        filterSelectOptions(selectEl, getSource(), query);
+      };
+      inputEl.addEventListener("input", apply);
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          inputEl.value = "";
+          apply();
+          inputEl.focus();
+        });
+      }
+      apply();
+    }
+
+    function initSelectInstanceFilters() {
+      if (allowedClassesSelect) {
+        allowedClassesSource = snapshotOptions(allowedClassesSelect);
+      }
+      if (instancesSelect) {
+        instancesSource = snapshotOptions(instancesSelect);
+      }
+      attachSearchFilter(allowedClassesSearch, allowedClassesClear, allowedClassesSelect, () => allowedClassesSource);
+      attachSearchFilter(instancesSearch, instancesClear, instancesSelect, () => instancesSource);
+    }
+
+    async function populateAllowedClasses(allowedList) {
+      if (!allowedClassesSelect) return;
+      allowedClassesSelect.innerHTML = "";
+      allowedClassesSelect.appendChild(new Option("Carregando...", ""));
+      try {
+        const resultOptions = [];
+        for (const className of allowedList) {
+          try {
+            const payload = await fetchClassInfo(className);
+            const children = Array.isArray(payload.classes) ? payload.classes : [];
+            if (children.length) {
+              const parentOption = document.createElement("option");
+              parentOption.value = payload.class || className;
+              const parentLabelBase = payload.class || className;
+              parentOption.textContent = parentLabelBase;
+              parentOption.setAttribute("isAbstract", payload.isAbstract);
+              allowedClassesSelect.appendChild(parentOption);
+              resultOptions.push({ value: parentOption.value, text: parentOption.textContent, isAbstract: payload.isAbstract });
+
+              children.forEach((child) => {
+                const option = document.createElement("option");
+                option.value = child.id || child.title;
+                const labelBase = child.title || child.id || className;
+                const suffix = child.count && Number(child.count) > 0 ? ` (${child.count})` : "";
+                option.innerHTML = `&nbsp;&nbsp;${labelBase}${suffix}`;
+                option.setAttribute("isAbstract", child.isAbstract);
+                allowedClassesSelect.appendChild(option); // This line is fine, but the resultOptions push needs to be correct.
+                resultOptions.push({ value: option.value, text: option.textContent || option.innerText || "", isAbstract: child.isAbstract });
+              });
+            } else {
+              const option = document.createElement("option");
+              option.value = payload.class || className;
+              const labelBase = payload.class || className;
+              const suffix = payload.count && Number(payload.count) > 0 ? ` (${payload.count})` : "";
+              option.textContent = `${labelBase}${suffix}`;
+              option.setAttribute("isAbstract", payload.isAbstract);
+              allowedClassesSelect.appendChild(option);
+              resultOptions.push({ value: option.value, text: option.textContent, isAbstract: payload.isAbstract });
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        }
+        allowedClassesSource = resultOptions;
+        filterSelectOptions(allowedClassesSelect, allowedClassesSource, allowedClassesSearch?.value || "");
+      } catch (err) {
+        console.error(err);
+        allowedClassesSelect.innerHTML = "";
+        const option = document.createElement("option");
+        option.disabled = true;
+        option.textContent = "Erro ao carregar classes";
+        allowedClassesSelect.appendChild(option);
+      }
+    }
+
+    // ------------------------- STACKED MODALS LOGIC --------------------------
+    let modalStackDepth = 0;
+    const BASE_Z_INDEX = 9000;
+
+    function hideModal(modalEl) {
+      if (!modalEl) return;
+      modalEl.classList.add("hidden");
+      modalEl.classList.remove("is-visible");
+      if (modalEl === deleteConfirmModal) {
+        pendingDeleteId = null;
+      }
+      if (modalEl === publishModal) {
+        isPublishPolling = false;
+      }
+    }
+
+    function showModal(modalEl) {
+      if (!modalEl) return;
+      // Ensure static modals appear on top of any stacked dynamic modals
+      modalEl.style.zIndex = BASE_Z_INDEX + (modalStackDepth + 1) * 10;
+      modalEl.classList.remove("hidden");
+      modalEl.classList.add("is-visible");
+    }
+
+    [selectInstanceModal, selectClassModal, deleteConfirmModal, publishModal].forEach((modal) => {
+      if (!modal) return;
+      modal.querySelectorAll("[data-modal-close]").forEach((btn) => {
+        btn.addEventListener("click", () => hideModal(modal));
+      });
+      modal.addEventListener("click", (e) => {
+        const isOverlayClick = e.target === modal;
+        const isDeleteConfirm = modal === deleteConfirmModal;
+        // Para o modal de deleção, desabilita fechar ao clicar fora
+        if (isOverlayClick && !isDeleteConfirm) {
+          hideModal(modal);
+        }
+      });
+    });
+
+    if (publishBtn && publishModal) {
+      publishBtn.addEventListener("click", () => {
+        resetPublishUi();
+        showModal(publishModal);
+      });
+    }
+
+    function resetPublishUi() {
+      setPublishBadge("IDLE");
+      setPublishProgress(0);
+      setPublishLog("Waiting for publish job...");
+    }
+
+    function setPublishBadge(statusText) {
+      if (!publishStatusBadge) return;
+      const safeStatus = statusText || "UNKNOWN";
+      publishStatusBadge.textContent = safeStatus;
+      publishStatusBadge.className = "bx--tag";
+      const className = publishStatusClassMap[safeStatus] || publishStatusClassMap.UNKNOWN;
+      if (className) {
+        publishStatusBadge.classList.add(className);
+      }
+    }
+
+    function setPublishLog(message) {
+      if (!publishStatusLog) return;
+      publishStatusLog.value = message ?? "";
+    }
+
+    function setPublishProgress(percent) {
+      if (!publishProgressBar) return;
+      const safePercent = Number.isFinite(percent) ? Math.min(Math.max(percent, 0), 100) : 0;
+      publishProgressBar.style.width = `${safePercent}%`;
+      if (publishProgressValue) {
+        publishProgressValue.textContent = `${safePercent}%`;
+      }
+      if (publishProgressTrack) {
+        publishProgressTrack.setAttribute("aria-valuenow", String(safePercent));
+      }
+    }
+
+    function extractPublishProgress(logs) {
+      if (!logs) return null;
+      const lines = logs.split(/\r?\n/).reverse();
+      for (const line of lines) {
+        const match = line.match(/PROGRESS\s+(\d+)%/i);
+        if (match) return Number.parseInt(match[1], 10);
+      }
+      return null;
+    }
+
+    function updatePublishProgressFromLogs(logs) {
+      const percent = extractPublishProgress(logs);
+      if (percent !== null) {
+        setPublishProgress(percent);
+      }
+    }
+
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    async function pollPublishStatus(jobId) {
+      if (!jobId) return;
+      isPublishPolling = true;
+
+      try {
+        while (isPublishPolling) {
+          const response = await fetch(`${publishApiBase}/publish-status?id=${encodeURIComponent(jobId)}`);
+          if (!response.ok) {
+            throw new Error(`Failed to query status (HTTP ${response.status})`);
+          }
+
+          const payload = await response.json();
+          const { status, logs } = payload;
+
+          setPublishBadge(status ?? "UNKNOWN");
+          setPublishLog(`${logs ?? ""}`);
+          updatePublishProgressFromLogs(logs);
+
+          if (status !== "RUNNING") {
+            isPublishPolling = false;
+            if (status === "SUCCESS") {
+              setPublishProgress(100);
+            }
+            break;
+          }
+
+          await wait(3000);
+        }
+      } catch (error) {
+        setPublishBadge("ERROR");
+        setPublishLog(`Error while tracking publish job:\n${error.message ?? error}`);
+        isPublishPolling = false;
+        setPublishProgress(0);
+      }
+    }
+
+    async function triggerPublishJob() {
+      if (!publishSubmitBtn) return;
+
+      const url = publishViewerUrlInput?.value?.trim();
+      const user = publishViewerUserInput?.value?.trim();
+      const pwd = publishViewerPwdInput?.value?.trim();
+
+      const params = new URLSearchParams();
+      if (url) params.append("url", url);
+      if (user) params.append("user", user);
+      if (pwd) params.append("pwd", pwd);
+
+      const query = params.toString();
+      const endpoint = query ? `${publishApiBase}/publish?${query}` : `${publishApiBase}/publish`;
+
+      isPublishPolling = false;
+      publishSubmitBtn.disabled = true;
+      setPublishBadge("RUNNING");
+      setPublishLog("Starting publish job...");
+      setPublishProgress(0);
+
+      try {
+        const response = await fetch(endpoint, { method: "GET" });
+        if (!response.ok) {
+          throw new Error(`Failed to start publish job (HTTP ${response.status})`);
+        }
+
+        const payload = await response.json();
+        const jobId = payload.jobId;
+
+        if (!jobId) {
+          throw new Error("Response does not include jobId.");
+        }
+
+        setPublishLog(`Publish job started. Job ID: ${jobId}\nWaiting for status updates...`);
+        setPublishProgress(0);
+        await pollPublishStatus(jobId);
+      } catch (error) {
+        setPublishBadge("ERROR");
+        setPublishLog(`Error while starting publish job:\n${error.message ?? error}`);
+        setPublishProgress(0);
+      } finally {
+        publishSubmitBtn.disabled = false;
+      }
+    }
+
+    if (publishSubmitBtn) {
+      publishSubmitBtn.addEventListener("click", triggerPublishJob);
+    }
+
+    function getAllowedClasses(wrapper) {
+      const allowed = wrapper?.dataset?.allowedClasses || "";
+      return allowed
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    async function openInstanceModal(instanceId, className) {
+      if (!instanceId || !className) return;
+
+      const template = document.getElementById("instance-modal-template");
+      if (!template) return;
+
+      const clone = template.content.cloneNode(true);
+      const modalEl = clone.querySelector(".bx--modal");
+
+      // Generate unique ID for this modal instance
+      const modalInstanceId = `modal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      modalEl.id = modalInstanceId;
+
+      // Stack management
+      modalStackDepth++;
+      modalEl.style.zIndex = BASE_Z_INDEX + (modalStackDepth * 10);
+
+      document.body.appendChild(modalEl);
+
+      // Update Title
+      const headingEl = modalEl.querySelector('.bx--modal-header__heading');
+      if (headingEl) {
+        headingEl.textContent = `Instance: ${className}`;
+      }
+
+      // Scoped elements
+      const loadingEl = modalEl.querySelector('[data-role="loading"]');
+      const tabsEl = modalEl.querySelector('[data-role="tabs"]');
+      const tabListEl = modalEl.querySelector('.bx--tabs__nav');
+      const formFieldsEl = modalEl.querySelector('[data-role="form-fields"]');
+      const saveBtn = modalEl.querySelector('[data-role="save-btn"]');
+      const closeBtns = modalEl.querySelectorAll('[data-modal-close]');
+
+      // State for this specific modal
+      let activeGroup = null;
+
+      // Close handlers
+      const closeModal = () => {
+        modalEl.remove();
+        modalStackDepth--;
+      };
+
+      closeBtns.forEach(btn => btn.addEventListener("click", closeModal));
+
+      // Save handler
+      saveBtn.addEventListener("click", async () => {
+        const isNew = instanceId === "new-instance";
+        const payload = {
+          ...collectFormData(formFieldsEl),
+          className: className
+        };
+        if (!isNew) {
+          payload.id = instanceId;
+        }
+
+        const url = isNew ? `${instanceApiBase}` : `${instanceApiBase}/${encodeURIComponent(instanceId)}`;
+        const method = isNew ? "POST" : "PATCH";
+
+        saveBtn.disabled = true;
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = "Saving...";
+
+        try {
+          const response = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) throw new Error("Failed to save");
+
+          const responseData = await response.json();
+          const savedInstance = responseData.instance || responseData;
+
+          console.log("Instance saved via stacked modal");
+          closeModal();
+
+          // Update the widget that initiated this, if any
+          if (activeWidgetWrapper && savedInstance && savedInstance.id) {
+            const widgetType = activeWidgetWrapper.dataset.widget;
+            const targetSelect = activeWidgetWrapper.querySelector("select");
+
+            // Create option for the new instance
+            const newOption = document.createElement("option");
+            newOption.value = savedInstance.id;
+            newOption.textContent = savedInstance.name || savedInstance.id;
+            newOption.dataset.className = savedInstance.className || className;
+            newOption.selected = true;
+
+            if (targetSelect) {
+              if (widgetType === "InstanceFieldWidget") {
+                // For single field, replace content
+                targetSelect.innerHTML = "";
+                targetSelect.appendChild(newOption);
+                // Update hidden input
+                const hidden = activeWidgetWrapper.querySelector("input[type='hidden'][data-role='instance-field-value']");
+                if (hidden) hidden.value = JSON.stringify([savedInstance]);
+                updateInstanceFieldActions(activeWidgetWrapper);
+              } else if (widgetType === "InstanceListWidget") {
+                // For list, append
+                targetSelect.appendChild(newOption);
+                syncInstanceListHidden(activeWidgetWrapper);
+                updateInstanceListActions(activeWidgetWrapper);
+              }
+              // Trigger change event
+              targetSelect.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          }
+
+          // Refresh main view if needed
+          if (selectedTreeB === instanceId) {
+            const nodeEl = Array.from(treeBEl.querySelectorAll(".node")).find(
+              (el) => String(el.dataset.id || "") === String(selectedTreeB)
+            );
+            if (nodeEl) {
+              handleTreeBSelection({ target: nodeEl });
+            }
+          }
+        } catch (err) {
+          console.error("Error saving:", err);
+          alert("Error saving instance.");
+        } finally {
+          if (document.body.contains(modalEl)) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+          }
+        }
+      });
+
+      // Input listener for validation
+      formFieldsEl.addEventListener("input", () => {
+        saveBtn.disabled = !isNameFilled(formFieldsEl);
+      });
+
+      // Load data
+      if (loadingEl) loadingEl.classList.remove("hidden");
+      saveBtn.disabled = true;
+
+      try {
+        const isNew = instanceId === "new-instance";
+        const [instanceData, spec] = await Promise.all([
+          isNew ? Promise.resolve({}) : fetchInstanceById(instanceId),
+          fetchAndPrepareFormSpec(className)
+        ]);
+
+        if (loadingEl) loadingEl.classList.add("hidden");
+
+        activeGroup = chooseDefaultGroup(spec, "principal");
+        renderFormTabs(spec, tabsEl, tabListEl, formFieldsEl, activeGroup, (group) => {
+          activeGroup = group;
+        });
+        fillFormValues(instanceData, formFieldsEl);
+
+        saveBtn.disabled = !isNameFilled(formFieldsEl);
+
+      } catch (err) {
+        console.error("Error loading modal data:", err);
+        if (loadingEl) loadingEl.classList.add("hidden");
+        formFieldsEl.innerHTML = `<p class="bx--label" style="color: #da1e28;">Error loading instance details.</p>`;
+      }
+    }
+
+    function attachActionHandlers(wrapper, selectRole) {
+      const allowedClasses = getAllowedClasses(wrapper);
+      const select = wrapper.querySelector(`select[data-role='${selectRole}']`);
+      const hasSingleAllowedClass = allowedClasses.length === 1;
+      wrapper.querySelectorAll(".actions button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const action = btn.dataset.action;
+          if (action === "add") {
+            activeWidgetWrapper = wrapper; // Armazena a referência do widget
+            // Limpa o select de instâncias e o campo de busca ao abrir o modal
+            if (instancesSelect) {
+              instancesSelect.innerHTML = "";
+              instancesSource = [];
+              filterSelectOptions(instancesSelect, instancesSource, "");
+            }
+            if (instancesSearch) instancesSearch.value = "";
+
+            // Desabilita o botão de confirmação
+            const confirmBtn = selectInstanceModal.querySelector("#select-instance-confirm-btn");
+            if (confirmBtn) { confirmBtn.disabled = true; }
+
+            showModal(selectInstanceModal);
+            populateAllowedClasses(allowedClasses);
+          }
+          if (action === "create") {
+            if (allowedClasses.length > 0) {
+              activeWidgetWrapper = wrapper;
+              showModal(selectClassModal);
+              populateSelectClassModal(allowedClasses);
+            } else {
+              console.log("Create new instance (no class selected)");
+              alert("No allowed classes defined for this field.");
+            }
+          }
+          if (action === "view") {
+            const hasSelection = select && select.value;
+            if (hasSelection) {
+              const selectedOption = select.selectedOptions[0];
+              const instanceId = selectedOption.value;
+              // Try to get class from dataset, or fetch it if missing (simplified here)
+              const className = selectedOption.dataset.className;
+
+              if (instanceId) {
+                if (className) {
+                  openInstanceModal(instanceId, className);
+                } else {
+                  // If class is unknown, we might need to fetch it or infer it. 
+                  // For now, let's try to use the allowed class if there is only one.
+                  if (hasSingleAllowedClass) {
+                    openInstanceModal(instanceId, allowedClasses[0]);
+                  } else {
+                    // Fallback: fetch instance to get class? Or just error.
+                    // For this implementation, we rely on dataset.className being populated.
+                    console.warn("Class name not found for instance", instanceId);
+                    // Attempt to fetch instance to get class
+                    fetchInstanceById(instanceId).then(inst => {
+                      if (inst && inst.className) {
+                        openInstanceModal(instanceId, inst.className);
+                      } else {
+                        alert("Could not determine class for instance.");
+                      }
+                    });
+                  }
+                }
+              }
+            }
+          }
+        });
+      });
+    }
+
+    // Initialize filters for Select Instance modal
+    initSelectInstanceFilters();
+
+    function initSelectClassFilter() {
+      if (selectClassList) {
+        selectClassSource = snapshotOptions(selectClassList);
+      }
+      attachSearchFilter(selectClassSearch, selectClassClear, selectClassList, () => selectClassSource);
+    }
+    initSelectClassFilter();
+
+    async function populateSelectClassModal(allowedList) {
+      if (!selectClassList) return;
+      selectClassList.innerHTML = '<option disabled>Loading...</option>';
+      selectClassSource = [];
+
+      const confirmBtn = selectClassModal.querySelector(".bx--modal-footer .bx--btn--primary");
+      if (confirmBtn) confirmBtn.disabled = true;
+
+      try {
+        const resultOptions = [];
+        for (const className of allowedList) {
+          try {
+            const payload = await fetchClassInfo(className);
+            const children = Array.isArray(payload.classes) ? payload.classes : [];
+
+            const addOption = (name, isAbstract, isChild = false, count = 0) => {
+              const option = document.createElement("option");
+              option.value = name;
+              const suffix = count > 0 ? ` (${count})` : "";
+              const labelBase = name;
+
+              if (isChild) {
+                option.innerHTML = `&nbsp;&nbsp;${labelBase}${suffix}`;
+              } else {
+                option.textContent = `${labelBase}${suffix}`;
+              }
+
+              option.setAttribute("isAbstract", isAbstract);
+              if (isAbstract) {
+                option.style.fontStyle = "italic";
+                option.style.color = "#888";
+              }
+              selectClassList.appendChild(option);
+              // For search filtering, we want the plain text
+              resultOptions.push({ value: name, text: option.textContent || option.innerText || "", isAbstract: isAbstract });
+            };
+
+            // Add parent
+            addOption(payload.class || className, payload.isAbstract, false, Number(payload.count) || 0);
+
+            // Add children
+            children.forEach(child => {
+              addOption(child.id || child.title, child.isAbstract, true, Number(child.count) || 0);
+            });
+
+          } catch (err) {
+            console.error(err);
+          }
+        }
+        selectClassList.innerHTML = ""; // Clear loading
+        selectClassSource = resultOptions;
+        filterSelectOptions(selectClassList, selectClassSource, selectClassSearch?.value || "");
+
+      } catch (err) {
+        console.error(err);
+        selectClassList.innerHTML = '<option disabled>Error loading classes</option>';
+      }
+    }
+
+    // ----------------------------- TREE RENDERING ----------------------------
+    function createTreeNode(node, forceExpand = false, parentTree = "") {
+      const li = document.createElement("li");
+      li.classList.add(node.hasChildren ? "has-children" : "leaf");
+
+      const nodeDiv = document.createElement("div");
+      nodeDiv.className = "node";
+      nodeDiv.dataset.id = node.id || node.label || node.title || "";
+      const currentPath = parentTree || "";
+      nodeDiv.dataset.parentTree = currentPath;
+      nodeDiv.dataset.hasChildren = node.hasChildren ? "true" : "false";
+      nodeDiv.dataset.count = typeof node.count === "number" ? String(node.count) : "0";
+      nodeDiv.dataset.isAbstract = node.isAbstract ? "true" : "false";
+      nodeDiv.textContent = node.label || node.title || node.id;
+      nodeDiv.tabIndex = -1;
+
+      if (node.hasChildren) {
+        const caret = document.createElement("span");
+        caret.className = "caret";
+        caret.innerHTML = "▾";
+        nodeDiv.prepend(caret);
+      }
+
+      li.appendChild(nodeDiv);
+
+      const childList = node.children && node.children.length ? node.children : [];
+      if (childList.length) {
+        const childrenUl = document.createElement("ul");
+        childrenUl.className = "children";
+        const childPathBase = currentPath ? `${currentPath}|${node.id || ""}` : (node.id || "");
+        childList.forEach((child) => childrenUl.appendChild(createTreeNode(child, forceExpand, childPathBase)));
+        li.appendChild(childrenUl);
+      }
+
+      const shouldCollapse = node.hasChildren && !(forceExpand || expandedNodes.has(node.id));
+      if (shouldCollapse) {
+        li.classList.add("collapsed");
+      }
+      return li;
+    }
+
+    function renderTreeA(data = treeAData, forceExpand = false) {
+      treeAEl.innerHTML = "";
+      data.forEach((node) => treeAEl.appendChild(createTreeNode(node, forceExpand)));
+      if (selectedTreeAKey) {
+        const match = findNodeByKey(treeAEl, selectedTreeAKey);
+        if (match) {
+          match.classList.add("selected");
+        }
+      }
+    }
+
+    function renderTreeB(list = []) {
+      treeBEl.innerHTML = "";
+      if (!list.length) return;
+      list.forEach((node) => treeBEl.appendChild(createTreeNode(node)));
+      if (selectedTreeB) {
+        const match = findNodeByIdSimple(treeBEl, selectedTreeB);
+        if (match) {
+          match.classList.add("selected");
+        }
+      }
+    }
+
+    function filterNodes(nodes, query) {
+      const q = query.toLowerCase();
+      return nodes
+        .map((node) => {
+          const label = String(node.label || node.title || node.id || "").toLowerCase();
+          const matches = label.includes(q);
+          const children = node.children ? filterNodes(node.children, query) : [];
+          if (matches || children.length) {
+            return { ...node, children };
+          }
+          return null;
+        })
+        .filter(Boolean);
+    }
+
+    function treeContains(nodes, id) {
+      const target = String(id);
+      for (const n of nodes) {
+        if (String(n.id) === target) return true;
+        if (n.children && treeContains(n.children, id)) return true;
+      }
+      return false;
+    }
+
+    function filterFlatNodes(nodes, query) {
+      const q = query.toLowerCase();
+      return nodes.filter((n) => String(n.label || n.title || n.id || "").toLowerCase().includes(q));
+    }
+
+    function sortInstances(list = []) {
+      return [...list].sort((a, b) => {
+        const la = String(a.label || a.title || a.id || "").toLowerCase();
+        const lb = String(b.label || b.title || b.id || "").toLowerCase();
+        return la.localeCompare(lb);
+      });
+    }
+
+    function updateClassInstanceCount(classId, count, shouldRefresh = true) {
+      if (!classId) return;
+      const updateNodes = (nodes) =>
+        nodes.map((node) => {
+          if (node.id === classId) {
+            const baseLabel = String(node.label || node.title || node.id || "");
+            const cleanLabel = baseLabel.replace(/\s*\(\d+\)\s*$/, "");
+            const label = count > 0 ? `${cleanLabel} (${count})` : cleanLabel;
+            return { ...node, count, label };
+          }
+          if (node.children) {
+            return { ...node, children: updateNodes(node.children) };
+          }
+          return node;
+        });
+      treeAData = updateNodes(treeAData);
+      if (shouldRefresh) refreshTreeA();
+    }
+
+    function updateInstanceActions() {
+      const hasTreeBSelection = Boolean(selectedTreeB);
+      const selectedNode = selectedTreeA
+        ? findNodeById(treeAData, selectedTreeA)
+        : null;
+      const isConcrete = selectedNode ? selectedNode.isAbstract === false : false;
+      if (treeBCopyBtn) treeBCopyBtn.disabled = !hasTreeBSelection;
+      if (treeBDeleteBtn) treeBDeleteBtn.disabled = !hasTreeBSelection;
+      if (treeBNewBtn) treeBNewBtn.disabled = isCreatingNewInstance || !(selectedTreeA && isConcrete);
+    }
+
+    function normalizeClassNode(node) {
+      const nodeId = node.id || node.class || node.title || node.label || "";
+      const baseLabel = node.title || node.label || node.class || node.id || nodeId || "";
+      const suffix = node.count && Number(node.count) > 0 ? ` (${node.count})` : "";
+      const rawChildren = Array.isArray(node.children)
+        ? node.children
+        : Array.isArray(node.classes)
+          ? node.classes
+          : [];
+      const normalizedChildren = rawChildren.map(normalizeClassNode);
+      const hasChildren = node.hasChildren !== undefined ? Boolean(node.hasChildren) : normalizedChildren.length > 0;
+      const normalizedId = nodeId || baseLabel || `node-${Math.random().toString(36).slice(2, 8)}`;
+      return {
+        id: normalizedId,
+        label: `${baseLabel}${suffix}`,
+        hasChildren,
+        isAbstract: node.isAbstract === false ? false : Boolean(node.isAbstract),
+        count: Number(node.count) || 0,
+        children: normalizedChildren
+      };
+    }
+
+    function refreshTreeA(forceExpand = false) {
+      const query = filterInputA.value.trim();
+      const data = query ? filterNodes(treeAData, query) : treeAData;
+      renderTreeA(data, forceExpand || Boolean(query));
+      if (selectedTreeA && !treeContains(data, selectedTreeA)) {
+        selectedTreeA = null;
+        selectedTreeAParent = "";
+        selectedTreeAKey = "";
+        refreshTreeB();
+        resetForm(true);
+      }
+      updateInstanceActions();
+    }
+
+    function refreshTreeB() {
+      const query = filterInputB.value.trim();
+      const filtered = query ? filterFlatNodes(currentTreeBData, query) : currentTreeBData;
+      renderTreeB(filtered);
+      if (selectedTreeB && !filtered.some((n) => n.id === selectedTreeB)) {
+        selectedTreeB = null;
+        resetForm(true);
+      }
+      updateInstanceActions();
+    }
+
+    function findNodeById(nodes, id) {
+      const target = String(id);
+      for (const node of nodes) {
+        if (String(node.id) === target) return node;
+        if (node.children) {
+          const found = findNodeById(node.children, id);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
+    function buildNodeKey(id, parentTree) {
+      return `${parentTree || ""}::${id || ""}`;
+    }
+
+    function findNodeByKey(container, key) {
+      if (!container || !key) return null;
+      return (
+        Array.from(container.querySelectorAll(".node")).find(
+          (n) => buildNodeKey(n.dataset.id || "", n.dataset.parentTree || "") === key
+        ) || null
+      );
+    }
+
+    function findNodeByIdSimple(container, id) {
+      if (!container || !id) return null;
+      const target = String(id);
+      return (
+        Array.from(container.querySelectorAll(".node")).find(
+          (n) => String(n.dataset.id || "") === target
+        ) || null
+      );
+    }
+
+    function getVisibleTreeANodes() {
+      return Array.from(treeAEl.querySelectorAll(".node")).filter((n) => n.offsetParent !== null);
+    }
+
+    function focusAndSelectTreeANode(nodeEl) {
+      if (!nodeEl) return;
+      nodeEl.focus();
+      // Keyboard navigation should not toggle expansion; only move selection.
+      handleTreeASelection(nodeEl, { toggleExpansion: false });
+    }
+
+    function setFormSpecs(value) {
+      formSpecs = value;
+      activeFormGroup = null;
+      renderFormTabs(formSpecs);
+    }
+
+    function getGroupItems(specs, groupName) {
+      if (!specs || !groupName) return [];
+      const items = [];
+      Object.keys(specs).forEach((key) => {
+        const groups = Array.isArray(specs[key]) ? specs[key] : [];
+        groups.forEach((entry) => {
+          if (entry && entry.group === groupName && Array.isArray(entry.items)) {
+            items.push(...entry.items);
+          }
+        });
+      });
+      return items.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    }
+
+    function labelize(text) {
+      if (!text) return "";
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    function getGroupList(specs) {
+      const groups = new Set();
+      if (specs && typeof specs === "object") {
+        Object.keys(specs).forEach((key) => {
+          const entries = Array.isArray(specs[key]) ? specs[key] : [];
+          entries.forEach((entry) => {
+            if (entry && entry.group) {
+              groups.add(entry.group);
+            }
+          });
+        });
+      }
+      return Array.from(groups);
+    }
+
+    function chooseDefaultGroup(specs, preferred = null) {
+      const groups = getGroupList(specs);
+      if (!groups.length) return null;
+      if (preferred && groups.includes(preferred)) return preferred;
+      return groups[0];
+    }
+
+    function cloneSpecs(specs) {
+      return JSON.parse(JSON.stringify(specs || {}));
+    }
+
+    function getPrimarySpecKey(specs) {
+      if (!specs || typeof specs !== "object") return null;
+      const keys = Object.keys(specs);
+      return keys.length ? keys[0] : null;
+    }
+
+    function ensureGroupEntry(specs, specKey, group) {
+      if (!specs[specKey]) specs[specKey] = [];
+      let entry = specs[specKey].find((g) => g.group === group);
+      if (!entry) {
+        entry = { group, items: [] };
+        specs[specKey].push(entry);
+      }
+      return entry;
+    }
+
+    function collectExistingSlots(specs) {
+      const set = new Set();
+      Object.keys(specs || {}).forEach((key) => {
+        const entries = Array.isArray(specs[key]) ? specs[key] : [];
+        entries.forEach((entry) => {
+          if (entry && Array.isArray(entry.items)) {
+            entry.items.forEach((item) => {
+              if (item && item.slot) set.add(item.slot);
+            });
+          }
+        });
+      });
+      return set;
+    }
+
+    function mapTypeToWidget(type, maxCardinality) {
+      const t = (type || "").toLowerCase();
+      if (t === "float") return "FloatFieldWidget";
+      if (t === "integer") return "IntegerFieldWidget";
+      if (t === "boolean") return "CheckBoxWidget";
+      if (t === "instance") return "InstanceFieldWidget";
+      return "TextFieldWidget";
+    }
+
+    function slotName(slotObj) {
+      return slotObj.slot || slotObj.name || slotObj.id || "";
+    }
+
+    function mergeSlotsIntoFormSpec(baseSpecs, slots) {
+      const merged = cloneSpecs(baseSpecs);
+      const specKey = getPrimarySpecKey(merged) || "Default";
+      if (!merged[specKey]) merged[specKey] = [];
+
+      // Update existing items with allowed_classes when present
+      Object.keys(merged).forEach((key) => {
+        const entries = Array.isArray(merged[key]) ? merged[key] : [];
+        entries.forEach((entry) => {
+          if (entry && Array.isArray(entry.items)) {
+            entry.items = entry.items.map((item) => {
+              const match = (slots || []).find((s) => slotName(s) === item.slot);
+              if (match && match.allowed_classes) {
+                return { ...item, allowed_classes: match.allowed_classes };
+              }
+              return item;
+            });
+          }
+        });
+      });
+
+      const existing = collectExistingSlots(merged);
+      const remaining = (slots || []).filter((s) => {
+        const name = slotName(s);
+        return name && !existing.has(name);
+      });
+      if (!remaining.length) return merged;
+
+      remaining.forEach((slot, idx) => {
+        const name = slotName(slot);
+        if (!name) return;
+        let group = "extra";
+        if (name.startsWith("system_security")) {
+          group = "security";
+        } else if (name.startsWith("system")) {
+          group = "system";
+        }
+
+        const widget_type = mapTypeToWidget(slot.type, slot.max_cardinality);
+        const label = slot.label || slot.title || name;
+        const targetGroup = ensureGroupEntry(merged, specKey, group);
+        const maxOrder = targetGroup.items.reduce((max, item) => Math.max(max, Number(item.order) || 0), 0);
+        const order = maxOrder + idx + 1;
+        targetGroup.items.push({
+          label,
+          order,
+          slot: name,
+          widget_type,
+          allowed_classes: slot.allowed_classes || []
+        });
+      });
+
+      return merged;
+    }
+
+    function createTextInputField(item, multiline = false) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "bx--form-item";
+      wrapper.dataset.slot = item.slot || "";
+      wrapper.dataset.widget = item.widget_type || "";
+
+      const label = document.createElement("label");
+      label.className = "bx--label";
+      const id = `field-${(item.slot || item.label || "field").toString().replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+      label.setAttribute("for", id);
+      label.textContent = item.label || item.slot || "Campo";
+
+      let input;
+      if (multiline) {
+        input = document.createElement("textarea");
+        input.className = "bx--text-area";
+        input.rows = 3;
+      } else {
+        input = document.createElement("input");
+        input.className = "bx--text-input";
+        input.type = "text";
+      }
+      input.id = id;
+      wrapper.appendChild(label);
+      wrapper.appendChild(input);
+      return wrapper;
+    }
+
+    function createNumberField(item) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "bx--form-item";
+      wrapper.dataset.slot = item.slot || "";
+      wrapper.dataset.widget = item.widget_type || "";
+
+      const label = document.createElement("label");
+      label.className = "bx--label";
+      const id = `field-${(item.slot || item.label || "number").toString().replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+      label.setAttribute("for", id);
+      label.textContent = item.label || item.slot || "Número";
+
+      const input = document.createElement("input");
+      input.className = "bx--text-input";
+      input.type = "number";
+      if (item.widget_type === "FloatFieldWidget") {
+        input.step = "0.1";
+      }
+      input.id = id;
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(input);
+      return wrapper;
+    }
+
+    function createDropdownField(item) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "bx--form-item";
+      wrapper.dataset.slot = item.slot || "";
+      wrapper.dataset.widget = item.widget_type || "";
+
+      const label = document.createElement("label");
+      label.className = "bx--label";
+      const id = `field-${(item.slot || item.label || "dropdown").toString().replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+      label.setAttribute("for", id);
+      label.textContent = item.label || item.slot || "Opção";
+
+      const selectWrap = document.createElement("div");
+      selectWrap.className = "bx--select";
+      const select = document.createElement("select");
+      select.className = "bx--select-input";
+      select.id = id;
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Selecione...";
+      select.appendChild(placeholder);
+      selectWrap.appendChild(select);
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(selectWrap);
+      return wrapper;
+    }
+
+    function createCheckboxField(item) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "bx--form-item bx--checkbox-wrapper";
+      wrapper.dataset.slot = item.slot || "";
+      wrapper.dataset.widget = item.widget_type || "";
+
+      const id = `field-${(item.slot || item.label || "checkbox").toString().replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.className = "bx--checkbox";
+      input.id = id;
+
+      const label = document.createElement("label");
+      label.className = "bx--checkbox-label";
+      label.setAttribute("for", id);
+      label.textContent = item.label || item.slot || "Opção";
+
+      wrapper.appendChild(input);
+      wrapper.appendChild(label);
+      return wrapper;
+    }
+
+    function createPlaceholderField(item, text) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "bx--form-item";
+      wrapper.dataset.slot = item.slot || "";
+      wrapper.dataset.widget = item.widget_type || "";
+      const label = document.createElement("label");
+      label.className = "bx--label";
+      label.textContent = item.label || item.slot || "Campo";
+      const note = document.createElement("p");
+      note.className = "bx--label";
+      note.style.fontSize = "0.85rem";
+      note.textContent = text;
+      wrapper.appendChild(label);
+      wrapper.appendChild(note);
+      return wrapper;
+    }
+
+    function createInstanceFieldField(item) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "bx--form-item";
+      wrapper.dataset.slot = item.slot || "";
+      wrapper.dataset.widget = item.widget_type || "InstanceFieldWidget";
+      if (item.allowed_classes) {
+        wrapper.dataset.allowedClasses = Array.isArray(item.allowed_classes) ? item.allowed_classes.join(",") : "";
+      }
+
+      const label = document.createElement("label");
+      label.className = "bx--label";
+      label.textContent = item.label || item.slot || "Instância";
+
+      const hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.dataset.role = "instance-field-value";
+
+      const actionsBar = document.createElement("div");
+      actionsBar.className = "actions";
+      actionsBar.style.justifyContent = "flex-end";
+      actionsBar.style.display = "flex";
+      actionsBar.style.marginBottom = "0.5rem";
+
+      const btnConfigs = [
+        {
+          variant: "bx--btn--secondary",
+          label: "View",
+          action: "view",
+          icon: '<path d="M16 10a5.99 5.99 0 0 0-5.996 5.824L10 16a6 6 0 1 0 6-6Zm0 10a4 4 0 1 1 4-4 4.004 4.004 0 0 1-4 4Z"></path><path d="M16 6a15.7 15.7 0 0 0-13.4 7.34L2 14l.6.66A15.7 15.7 0 0 0 16 22a15.7 15.7 0 0 0 13.4-7.34L30 14l-.6-.66A15.7 15.7 0 0 0 16 6Zm0 14a13.72 13.72 0 0 1-11.58-6A13.72 13.72 0 0 1 16 8a13.72 13.72 0 0 1 11.58 6A13.72 13.72 0 0 1 16 20Z"></path>'
+        },
+        {
+          variant: "bx--btn--primary",
+          label: "Create",
+          action: "create",
+          icon: '<path d="M17 15h6v2h-6v6h-2v-6H9v-2h6V9h2z"></path>'
+        },
+        {
+          variant: "bx--btn--primary",
+          label: "Add",
+          action: "add",
+          icon: '<path d="M16 2a14 14 0 1 0 14 14A14.015 14.015 0 0 0 16 2Zm0 26a12 12 0 1 1 12-12 12.013 12.013 0 0 1-12 12Z"></path><path d="M22 15H17V10H15v5H10v2h5v5h2V17h5z"></path>'
+        },
+        {
+          variant: "bx--btn--danger--tertiary",
+          label: "Remove",
+          action: "remove",
+          icon: '<path d="M12 12h2v12h-2zM18 12h2v12h-2z"></path><path d="M28 6h-7V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v2H4v2h2v20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8h2Zm-14-2h6v2h-6Zm12 24H8V8h16Z"></path>'
+        }
+      ];
+
+      btnConfigs.forEach((cfg) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `bx--btn ${cfg.variant} bx--btn--icon-only bx--btn--sm tooltip-trigger`;
+        btn.setAttribute("aria-label", cfg.label);
+        btn.setAttribute("data-tooltip", cfg.label);
+        if (cfg.action) {
+          btn.dataset.action = cfg.action;
+          if (cfg.action === "view" || cfg.action === "remove") btn.disabled = true;
+        }
+        btn.innerHTML = `<svg aria-hidden="true" focusable="false" class="bx--btn__icon" viewBox="0 0 32 32">${cfg.icon}</svg>`;
+        btn.addEventListener("click", () => {
+          console.log(`Action button clicked: ${cfg.label}${cfg.action ? ` (${cfg.action})` : ""}`);
+        });
+        actionsBar.appendChild(btn);
+      });
+
+      const selectWrap = document.createElement("div");
+      selectWrap.className = "bx--select";
+      const select = document.createElement("select");
+      select.className = "bx--select-input";
+      select.dataset.role = "instance-field-select";
+      selectWrap.appendChild(select);
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(hidden);
+      wrapper.appendChild(actionsBar);
+      wrapper.appendChild(selectWrap);
+      attachActionHandlers(wrapper, "instance-field-select");
+      select.addEventListener("change", () => {
+        updateInstanceFieldActions(wrapper);
+      });
+      return wrapper;
+    }
+    function createInstanceListField(item) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "bx--form-item";
+      wrapper.dataset.slot = item.slot || "";
+      wrapper.dataset.widget = item.widget_type || "InstanceListWidget";
+      if (item.allowed_classes) {
+        wrapper.dataset.allowedClasses = Array.isArray(item.allowed_classes) ? item.allowed_classes.join(",") : "";
+      }
+
+      const label = document.createElement("label");
+      label.className = "bx--label";
+      label.textContent = item.label || item.slot || "Lista";
+
+      const hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.dataset.role = "instance-list-value";
+
+      const actionsBar = document.createElement("div");
+      actionsBar.className = "actions";
+      actionsBar.style.justifyContent = "flex-end";
+      actionsBar.style.display = "flex";
+      actionsBar.style.marginBottom = "0.5rem";
+
+      const btnConfigs = [
+        {
+          variant: "bx--btn--secondary",
+          label: "View",
+          action: "view",
+          icon: '<path d="M16 10a5.99 5.99 0 0 0-5.996 5.824L10 16a6 6 0 1 0 6-6Zm0 10a4 4 0 1 1 4-4 4.004 4.004 0 0 1-4 4Z"></path><path d="M16 6a15.7 15.7 0 0 0-13.4 7.34L2 14l.6.66A15.7 15.7 0 0 0 16 22a15.7 15.7 0 0 0 13.4-7.34L30 14l-.6-.66A15.7 15.7 0 0 0 16 6Zm0 14a13.72 13.72 0 0 1-11.58-6A13.72 13.72 0 0 1 16 8a13.72 13.72 0 0 1 11.58 6A13.72 13.72 0 0 1 16 20Z"></path>'
+        },
+        {
+          variant: "bx--btn--primary",
+          label: "Create",
+          action: "create",
+          icon: '<path d="M17 15h6v2h-6v6h-2v-6H9v-2h6V9h2z"></path>'
+        },
+        {
+          variant: "bx--btn--secondary",
+          label: "Add",
+          action: "add",
+          icon: '<path d="M16 2a14 14 0 1 0 14 14A14.015 14.015 0 0 0 16 2Zm0 26a12 12 0 1 1 12-12 12.013 12.013 0 0 1-12 12Z"></path><path d="M22 15H17V10H15v5H10v2h5v5h2V17h5z"></path>'
+        },
+        {
+          variant: "bx--btn--danger--tertiary",
+          label: "Remove",
+          action: "remove",
+          icon: '<path d="M12 12h2v12h-2zM18 12h2v12h-2z"></path><path d="M28 6h-7V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v2H4v2h2v20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8h2Zm-14-2h6v2h-6Zm12 24H8V8h16Z"></path>'
+        }
+      ];
+
+      btnConfigs.forEach((cfg) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `bx--btn ${cfg.variant} bx--btn--icon-only bx--btn--sm tooltip-trigger`;
+        btn.setAttribute("aria-label", cfg.label);
+        btn.setAttribute("data-tooltip", cfg.label);
+        if (cfg.action) btn.dataset.action = cfg.action;
+        if (cfg.action === "view" || cfg.action === "remove") {
+          btn.disabled = true;
+        }
+        btn.innerHTML = `<svg aria-hidden="true" focusable="false" class="bx--btn__icon" viewBox="0 0 32 32">${cfg.icon}</svg>`;
+        btn.addEventListener("click", () => {
+          if (cfg.action === "remove") {
+            const select = wrapper.querySelector("select[data-role='instance-list-select']");
+            if (select) {
+              Array.from(select.selectedOptions || []).forEach((opt) => opt.remove());
+              syncInstanceListHidden(wrapper);
+              updateInstanceListActions(wrapper);
+            }
+            return;
+          }
+          console.log(`Action button clicked: ${cfg.label}${cfg.action ? ` (${cfg.action})` : ""}`);
+        });
+        actionsBar.appendChild(btn);
+      });
+
+      const selectWrap = document.createElement("div");
+      selectWrap.className = "bx--select";
+      const select = document.createElement("select");
+      select.multiple = true;
+      select.size = 5;
+      select.className = "bx--select-input";
+      select.dataset.role = "instance-list-select";
+      selectWrap.appendChild(select);
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(hidden);
+      wrapper.appendChild(actionsBar);
+      wrapper.appendChild(selectWrap);
+      attachActionHandlers(wrapper, "instance-list-select");
+      select.addEventListener("change", () => {
+        updateInstanceListActions(wrapper);
+      });
+      return wrapper;
+    }
+
+    function createStringListField(item) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "bx--form-item";
+      wrapper.dataset.slot = item.slot || "";
+      wrapper.dataset.widget = item.widget_type || "StringListWidget";
+
+      const label = document.createElement("label");
+      label.className = "bx--label";
+      label.textContent = item.label || item.slot || "Lista";
+
+      const hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.dataset.role = "string-list-value";
+
+      const actionsBar = document.createElement("div");
+      actionsBar.className = "actions";
+      actionsBar.style.justifyContent = "flex-end";
+      actionsBar.style.display = "flex";
+      actionsBar.style.marginBottom = "0.5rem";
+
+      const btnConfigs = [
+        {
+          variant: "bx--btn--secondary",
+          label: "View",
+          action: "view",
+          icon: '<path d="M16 10a5.99 5.99 0 0 0-5.996 5.824L10 16a6 6 0 1 0 6-6Zm0 10a4 4 0 1 1 4-4 4.004 4.004 0 0 1-4 4Z"></path><path d="M16 6a15.7 15.7 0 0 0-13.4 7.34L2 14l.6.66A15.7 15.7 0 0 0 16 22a15.7 15.7 0 0 0 13.4-7.34L30 14l-.6-.66A15.7 15.7 0 0 0 16 6Zm0 14a13.72 13.72 0 0 1-11.58-6A13.72 13.72 0 0 1 16 8a13.72 13.72 0 0 1 11.58 6A13.72 13.72 0 0 1 16 20Z"></path>'
+        },
+        {
+          variant: "bx--btn--primary",
+          label: "Add",
+          action: "add",
+          icon: '<path d="M16 2a14 14 0 1 0 14 14A14.015 14.015 0 0 0 16 2Zm0 26a12 12 0 1 1 12-12 12.013 12.013 0 0 1-12 12Z"></path><path d="M22 15H17V10H15v5H10v2h5v5h2V17h5z"></path>'
+        },
+        {
+          variant: "bx--btn--danger--tertiary",
+          label: "Remove",
+          action: "remove",
+          icon: '<path d="M12 12h2v12h-2zM18 12h2v12h-2z"></path><path d="M28 6h-7V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v2H4v2h2v20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8h2Zm-14-2h6v2h-6Zm12 24H8V8h16Z"></path>'
+        }
+      ];
+
+      btnConfigs.forEach((cfg) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `bx--btn ${cfg.variant} bx--btn--icon-only bx--btn--sm tooltip-trigger`;
+        btn.setAttribute("aria-label", cfg.label);
+        btn.setAttribute("data-tooltip", cfg.label);
+        if (cfg.action) {
+          btn.dataset.action = cfg.action;
+          if (cfg.action === "view" || cfg.action === "remove") {
+            btn.disabled = true;
+          }
+        }
+        btn.innerHTML = `<svg aria-hidden="true" focusable="false" class="bx--btn__icon" viewBox="0 0 32 32">${cfg.icon}</svg>`;
+        btn.addEventListener("click", () => {
+          if (cfg.action === "remove") {
+            const select = wrapper.querySelector("select[data-role='string-list-select']");
+            if (select) {
+              Array.from(select.selectedOptions || []).forEach((opt) => opt.remove());
+              syncStringListHidden(wrapper);
+              updateStringListActions(wrapper);
+            }
+            return;
+          }
+          console.log(`Action button clicked: ${cfg.label}${cfg.action ? ` (${cfg.action})` : ""}`);
+        });
+        actionsBar.appendChild(btn);
+      });
+
+      const selectWrap = document.createElement("div");
+      selectWrap.className = "bx--select";
+      const select = document.createElement("select");
+      select.multiple = true;
+      select.size = 5;
+      select.className = "bx--select-input";
+      select.dataset.role = "string-list-select";
+      selectWrap.appendChild(select);
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(hidden);
+      wrapper.appendChild(actionsBar);
+      wrapper.appendChild(selectWrap);
+      return wrapper;
+    }
+
+    function buildField(item) {
+      const widget = item.widget_type;
+      switch (widget) {
+        case "AutoTextWidget":
+        case "UniqueStringWidget":
+          return createTextInputField(item, false);
+        case "TextAreaWidget":
+          return createTextInputField(item, true);
+        case "TextFieldWidget":
+          return createTextInputField(item, false);
+        case "CheckBoxWidget":
+          return createCheckboxField(item);
+        case "ComboBoxWidget":
+          return createDropdownField(item);
+        case "FloatFieldWidget":
+        case "IntegerFieldWidget":
+          return createNumberField(item);
+        case "InstanceListWidget":
+          return createInstanceListField(item);
+        case "InstanceFieldWidget":
+          return createInstanceFieldField(item);
+        case "StringListWidget":
+          return createStringListField(item);
+        case "GraphWidget":
+          return createPlaceholderField(item, "Graph widget não suportado.");
+        default:
+          return createTextInputField(item, false);
+      }
+    }
+
+    function renderFormFields(specs, container, currentGroup) {
+      if (!container) return;
+      container.innerHTML = "";
+
+      const groups = getGroupList(specs);
+      if (!groups.length) {
+        container.innerHTML = '<p class="bx--label">Nenhum formulário disponível.</p>';
+        return;
+      }
+
+      if (!currentGroup || !groups.includes(currentGroup)) {
+        currentGroup = chooseDefaultGroup(specs, "principal");
+      }
+
+      groups.forEach((group) => {
+        const section = document.createElement("div");
+        section.className = "form-group";
+        section.dataset.group = group;
+        if (group !== currentGroup) section.classList.add("hidden");
+
+        const items = getGroupItems(specs, group);
+        if (!items.length) {
+          const msg = document.createElement("p");
+          msg.className = "bx--label";
+          msg.textContent = "Nenhum campo nesta aba.";
+          section.appendChild(msg);
+        } else {
+          items.forEach((item) => {
+            const field = buildField(item);
+            if (field) {
+              section.appendChild(field);
+            }
+          });
+        }
+        container.appendChild(section);
+      });
+    }
+
+    function renderInstanceListOptions(wrapper, list) {
+      const select = wrapper.querySelector("select[data-role='instance-list-select']");
+      const hidden = wrapper.querySelector("input[type='hidden'][data-role='instance-list-value']");
+      if (!select || !hidden) return;
+      select.innerHTML = "";
+      if (!Array.isArray(list) || !list.length) {
+        const option = document.createElement("option");
+        option.textContent = "Nenhum item";
+        option.value = "";
+        select.appendChild(option);
+        hidden.value = JSON.stringify([]);
+        return;
+      }
+      list.forEach((item) => {
+        const option = document.createElement("option");
+        option.textContent = item.name || item.id || "Item";
+        option.value = item.id || "";
+        option.dataset.className = item.className || "";
+        option.selected = false;
+        select.appendChild(option);
+      });
+      syncInstanceListHidden(wrapper);
+      updateInstanceListActions(wrapper);
+      if (!select.dataset.handlersAttached) {
+        select.addEventListener("change", () => {
+          updateInstanceListActions(wrapper);
+          syncInstanceListHidden(wrapper);
+        });
+        select.dataset.handlersAttached = "true";
+      }
+    }
+
+    function renderInstanceFieldOptions(wrapper, value) {
+      const select = wrapper.querySelector("select[data-role='instance-field-select']");
+      const hidden = wrapper.querySelector("input[type='hidden'][data-role='instance-field-value']");
+      if (!select || !hidden) return;
+      const normalized = value && typeof value === "object" ? [value] : [];
+      hidden.value = JSON.stringify(normalized);
+      select.innerHTML = "";
+      const placeholder = document.createElement("option");
+      placeholder.textContent = normalized.length ? "Selecione..." : "Nenhum item";
+      placeholder.value = "";
+      select.appendChild(placeholder);
+      if (normalized.length) {
+        const item = normalized[0];
+        const option = document.createElement("option");
+        option.textContent = item.name || item.id || "Item";
+        option.value = item.id || "";
+        option.dataset.className = item.className || "";
+        option.selected = true;
+        select.appendChild(option);
+        select.value = option.value;
+      }
+      updateInstanceFieldActions(wrapper);
+    }
+
+    function renderStringListOptions(wrapper, list) {
+      const select = wrapper.querySelector("select[data-role='string-list-select']");
+      const hidden = wrapper.querySelector("input[type='hidden'][data-role='string-list-value']");
+      if (!select || !hidden) return;
+      select.innerHTML = "";
+      if (!Array.isArray(list) || !list.length) {
+        const option = document.createElement("option");
+        option.textContent = "Nenhum item";
+        option.value = "";
+        select.appendChild(option);
+        hidden.value = JSON.stringify([]);
+      } else {
+        list.forEach((value) => {
+          const option = document.createElement("option");
+          const label = typeof value === "string" ? value : value?.name || value?.id || "Item";
+          option.textContent = label;
+          option.value = typeof value === "string" ? value : value?.id || label;
+          option.selected = false;
+          select.appendChild(option);
+        });
+      }
+      syncStringListHidden(wrapper);
+      updateStringListActions(wrapper);
+      if (!select.dataset.handlersAttached) {
+        select.addEventListener("change", () => {
+          updateStringListActions(wrapper);
+          syncStringListHidden(wrapper);
+        });
+        select.dataset.handlersAttached = "true";
+      }
+    }
+
+    function fillFormValues(values, container) {
+      if (!container || !values) return;
+      container.querySelectorAll("[data-slot]").forEach((wrapper) => {
+        const slot = wrapper.dataset.slot;
+        if (!slot) return;
+        const input = wrapper.querySelector("input, textarea, select");
+        if (!input) return;
+        const rawValue = values[slot];
+        if (rawValue === undefined || rawValue === null) return;
+        if (wrapper.dataset.widget === "InstanceListWidget") {
+          const normalized = Array.isArray(rawValue)
+            ? rawValue
+            : typeof rawValue === "object"
+              ? [rawValue]
+              : [];
+          renderInstanceListOptions(wrapper, normalized);
+        } else if (wrapper.dataset.widget === "StringListWidget") {
+          const normalized = Array.isArray(rawValue)
+            ? rawValue
+            : rawValue !== undefined && rawValue !== null
+              ? [rawValue]
+              : [];
+          renderStringListOptions(wrapper, normalized);
+        } else if (wrapper.dataset.widget === "InstanceFieldWidget") {
+          renderInstanceFieldOptions(wrapper, rawValue && !Array.isArray(rawValue) ? rawValue : null);
+        } else if (input.type === "checkbox") {
+          input.checked = String(rawValue).toLowerCase() === "true";
+        } else if (typeof rawValue === "object" && rawValue.name) {
+          input.value = rawValue.name;
+        } else {
+          input.value = String(rawValue);
+        }
+      });
+    }
+
+    async function fetchClassTree() {
+      const url = `${apiBase}/`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Falha ao carregar árvore de classes");
+      }
+      const payload = await response.json();
+      const list = Array.isArray(payload) ? payload : payload.classes;
+      if (payload && payload.class && Array.isArray(payload.classes)) {
+        return [
+          normalizeClassNode({
+            id: payload.class,
+            title: payload.class,
+            hasChildren: Array.isArray(payload.classes) && payload.classes.length > 0,
+            classes: payload.classes
+          })
+        ];
+      }
+      return Array.isArray(list) ? list.map(normalizeClassNode) : [];
+    }
+
+    async function fetchInstancesForClass(classId) {
+      const url = `${apiBase}/${encodeURIComponent(classId)}/instances?slots=name&maxdept=1&directinstances=true`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Falha ao carregar instancias de ${classId}`);
+      }
+      const payload = await response.json();
+      if (!payload || !Array.isArray(payload.instances)) return [];
+      return sortInstances(
+        payload.instances.map((inst) => ({
+          id: inst.id,
+          label: inst.name || inst.id,
+          hasChildren: false
+        }))
+      );
+    }
+
+    async function loadRootClasses() {
+      treeAEl.innerHTML = "<li>Carregando classes...</li>";
+      try {
+        treeAData = await fetchClassTree();
+        refreshTreeA();
+      } catch (err) {
+        console.error(err);
+        treeAEl.innerHTML = "<li>Erro ao carregar classes.</li>";
+      }
+    }
+
+    async function loadAndExpandNode(nodeId) {
+      expandedNodes.add(nodeId);
+      refreshTreeA();
+    }
+
+    async function loadInstancesForNode(nodeId, options = {}) {
+      const { resetForm: shouldReset = true } = options;
+      currentTreeBData = [];
+      refreshTreeB();
+      try {
+        currentTreeBData = sortInstances(await fetchInstancesForClass(nodeId));
+      } catch (err) {
+        console.error(err);
+        treeBEl.innerHTML = "<li>Erro ao carregar instancias.</li>";
+      } finally {
+        refreshTreeB();
+        if (shouldReset) {
+          resetForm(true);
+        }
+        updateClassInstanceCount(nodeId, currentTreeBData.length);
+      }
+    }
+
+    async function fetchFormSpecForClass(classId) {
+      const url = `${apiBase}/${encodeURIComponent(classId)}/form`;
+      const response = await fetch(url);
+      if (response.status === 404) {
+        throw new Error("FORM_NOT_FOUND");
+      }
+      if (!response.ok) {
+        throw new Error("FORM_FETCH_ERROR");
+      }
+      return response.json();
+    }
+
+    async function fetchSlotsForClass(classId) {
+      const url = `${apiBase}/${encodeURIComponent(classId)}/slots`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Falha ao carregar slots da classe ${classId}`);
+      }
+      return response.json();
+    }
+
+    async function fetchInstanceById(instanceId) {
+      const url = `${instanceApiBase}/${encodeURIComponent(instanceId)}?maxdepth=1`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Falha ao carregar instancia ${instanceId}`);
+      }
+      const payload = await response.json();
+      return payload.instance || null;
+    }
+
+    async function fetchAndPrepareFormSpec(classId) {
+      if (!classId) return null;
+      const baseSpec = await fetchFormSpecForClass(classId);
+      let mergedSpec = baseSpec;
+      try {
+        const slots = await fetchSlotsForClass(classId);
+        mergedSpec = mergeSlotsIntoFormSpec(baseSpec, slots);
+      } catch (slotErr) {
+        console.error(slotErr);
+      }
+      // setFormSpecs(mergedSpec); // REMOVED: Side effect causing global state pollution
+      return mergedSpec;
+    }
+
+    // ---------------------------- EVENT HANDLERS -----------------------------
+    async function handleTreeASelection(nodeDiv, { toggleExpansion = true } = {}) {
+      if (!nodeDiv) return;
+      hideFormError();
+      hideDeleteNotice();
+      isCreatingNewInstance = false;
+
+      const parentTree = nodeDiv.dataset.parentTree || "";
+      const newId = nodeDiv.dataset.id || (nodeDiv.textContent || "").trim();
+      const prevKey = selectedTreeAKey;
+      const nextKey = buildNodeKey(newId, parentTree);
+
+      if (prevKey && prevKey !== nextKey) {
+        const prev = findNodeByKey(treeAEl, prevKey);
+        if (prev) prev.classList.remove("selected");
+      }
+      nodeDiv.classList.add("selected");
+      selectedTreeA = newId;
+      selectedTreeAPath = parentTree;
+      selectedTreeAKey = nextKey;
+      if (selectedTreeB) {
+        const prevB = findNodeByIdSimple(treeBEl, selectedTreeB);
+        if (prevB) prevB.classList.remove("selected");
+      }
+      selectedTreeB = null;
+
+      const hasChildren = nodeDiv.dataset.hasChildren === "true";
+      const count = Number(nodeDiv.dataset.count || "0");
+      const isAbstract = nodeDiv.dataset.isAbstract === "true";
+      const isExpanded = expandedNodes.has(selectedTreeA);
+
+      if (toggleExpansion && hasChildren) {
+        if (isExpanded) {
+          expandedNodes.delete(selectedTreeA);
+          refreshTreeA();
+        } else {
+          await loadAndExpandNode(selectedTreeA);
+        }
+      }
+
+      if (count > 0 && !isAbstract) {
+        setFormSpecs(null);
+        try {
+          const spec = await fetchAndPrepareFormSpec(selectedTreeA);
+          setFormSpecs(spec);
+        } catch (err) {
+          if (err.message === "FORM_NOT_FOUND") {
+            console.warn("Form spec não encontrado para esta classe.");
+            showFormError("Form spec não encontrado para esta classe.");
+          } else {
+            console.error(err);
+            showFormError("Erro ao carregar form spec.");
+          }
+        }
+        await loadInstancesForNode(selectedTreeA);
+      } else {
+        setFormSpecs(null);
+        currentTreeBData = [];
+        refreshTreeB();
+        resetForm(true);
+      }
+      updateInstanceActions();
+    }
+
+    async function handleTreeAClick(event) {
+      const nodeDiv = event.target.closest(".node");
+      if (!nodeDiv) return;
+      await handleTreeASelection(nodeDiv, { toggleExpansion: true });
+    }
+
+    async function handleTreeBSelection(event) {
+      const nodeDiv = event.target.closest(".node");
+      if (!nodeDiv) return;
+      if (selectedTreeB && selectedTreeB !== nodeDiv.dataset.id) {
+        const prev = findNodeByIdSimple(treeBEl, selectedTreeB);
+        if (prev) prev.classList.remove("selected");
+      }
+      nodeDiv.classList.add("selected");
+      selectedTreeB = nodeDiv.dataset.id;
+      currentInstanceData = null;
+      hideDeleteNotice();
+      const isNew = selectedTreeB === "new-instance";
+      if (!formSpecs && selectedTreeA) {
+        try {
+          const spec = await fetchAndPrepareFormSpec(selectedTreeA);
+          setFormSpecs(spec);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      if (isNew) {
+        isCreatingNewInstance = true;
+        currentInstanceData = {};
+      } else {
+        isCreatingNewInstance = false;
+        try {
+          currentInstanceData = await fetchInstanceById(selectedTreeB);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      activeFormGroup = chooseDefaultGroup(formSpecs, "principal");
+      renderFormTabs(formSpecs, formTabs, formTabList, formFields, activeFormGroup, (group) => {
+        activeFormGroup = group;
+      });
+      populateForm();
+      updateInstanceActions();
+    }
+
+    async function handleCreateNewInstance() {
+      if (!selectedTreeA || !treeBNewBtn) return;
+      hideFormError();
+      treeBNewBtn.disabled = true;
+      try {
+        if (!formSpecs) {
+          const spec = await fetchAndPrepareFormSpec(selectedTreeA);
+          setFormSpecs(spec);
+        }
+        const newNodeId = "new-instance";
+        if (!currentTreeBData.some((node) => node.id === newNodeId)) {
+          currentTreeBData = sortInstances([...currentTreeBData, { id: newNodeId, label: "New Instace", hasChildren: false }]);
+        }
+        filterInputB.value = "";
+        selectedTreeB = newNodeId;
+        currentInstanceData = {};
+        isCreatingNewInstance = true;
+        activeFormGroup = chooseDefaultGroup(formSpecs, "principal");
+        refreshTreeB();
+        renderFormTabs(formSpecs, formTabs, formTabList, formFields, activeFormGroup, (group) => {
+          activeFormGroup = group;
+        });
+        populateForm();
+        updateClassInstanceCount(selectedTreeA, currentTreeBData.length);
+        hideDeleteNotice();
+      } catch (err) {
+        console.error(err);
+        showFormError("Erro ao preparar o formulário para a nova instância.");
+        isCreatingNewInstance = false;
+        updateInstanceActions();
+      }
+    }
+
+    // --------------------------- FORM INTERACTIONS ---------------------------
+    function populateForm() {
+      form.classList.remove("hidden");
+      formPlaceholder.classList.add("hidden");
+      hideFormError();
+      hideDeleteNotice();
+      renderFormFields(formSpecs, formFields, activeFormGroup);
+      fillFormValues(currentInstanceData, formFields);
+      saveNotice.classList.add("hidden");
+      updateSaveButtonState();
+      updateInstanceActions();
+    }
+
+    function resetForm(hide = false) {
+      activeFormGroup = null;
+      currentInstanceData = null;
+      isCreatingNewInstance = false;
+      renderFormTabs(formSpecs, formTabs, formTabList, formFields, activeFormGroup, (group) => {
+        activeFormGroup = group;
+      });
+      formFields.innerHTML = "";
+      saveNotice.classList.add("hidden");
+      hideDeleteNotice();
+      if (hide) {
+        form.classList.add("hidden");
+        formPlaceholder.classList.remove("hidden");
+      }
+      updateSaveButtonState();
+      updateInstanceActions();
+    }
+
+    function showFormError(message) {
+      if (!formErrorNotice || !formErrorMessage) return;
+      formErrorMessage.textContent = message;
+      formErrorNotice.classList.remove("hidden");
+    }
+
+    function hideFormError() {
+      if (!formErrorNotice) return;
+      formErrorNotice.classList.add("hidden");
+    }
+
+    function showFormLoading() {
+      if (formLoading) formLoading.classList.remove("hidden");
+      if (form) form.classList.add("hidden");
+      if (formPlaceholder) formPlaceholder.classList.add("hidden");
+    }
+
+    function hideFormLoading() {
+      if (formLoading) formLoading.classList.add("hidden");
+      if (form && !formPlaceholder?.classList.contains("hidden")) {
+        form.classList.add("hidden");
+      } else if (form) {
+        form.classList.remove("hidden");
+      }
+    }
+
+    function showDeleteNotice(message) {
+      if (!deleteNotice || !deleteNoticeMessage) return;
+      deleteNoticeMessage.textContent = message || "Instance deleted successfully";
+      deleteNotice.classList.remove("hidden");
+      formPlaceholder.classList.add("hidden");
+      if (saveNotice) saveNotice.classList.add("hidden");
+    }
+
+    function hideDeleteNotice() {
+      if (!deleteNotice) return;
+      deleteNotice.classList.add("hidden");
+    }
+
+    function isNameFilled(container = formFields) {
+      const nameInput = container?.querySelector(
+        "[data-group='principal'] [data-slot='name'] input, [data-group='principal'] [data-slot='name'] textarea, [data-group='principal'] [data-slot='name'] select"
+      );
+      if (!nameInput) return false;
+      const value = (nameInput.value || "").trim();
+      return value.length > 0;
+    }
+
+    function updateSaveButtonState() {
+      if (!saveBtn) return;
+      const enabled = Boolean(isNameFilled(formFields));
+      saveBtn.disabled = !enabled;
+    }
+
+    function renderFormTabs(specs, tabsContainer, listContainer, fieldsContainer, currentGroup, onTabClick) {
+      if (!tabsContainer || !listContainer) return;
+      listContainer.innerHTML = "";
+
+      if (!specs || typeof specs !== "object") {
+        tabsContainer.classList.add("hidden");
+        renderFormFields(null, fieldsContainer, null);
+        return;
+      }
+
+      const groups = new Set(getGroupList(specs));
+
+      if (!groups.size) {
+        tabsContainer.classList.add("hidden");
+        renderFormFields(null, fieldsContainer, null);
+        return;
+      }
+
+      const groupList = Array.from(groups);
+      if (!currentGroup || !groupList.includes(currentGroup)) {
+        currentGroup = chooseDefaultGroup(specs, "principal");
+        if (onTabClick) onTabClick(currentGroup);
+      }
+
+      groups.forEach((group) => {
+        const li = document.createElement("li");
+        li.className = "bx--tabs__nav-item";
+        if (group === currentGroup) {
+          li.classList.add("bx--tabs__nav-item--selected");
+        }
+
+        const link = document.createElement("a");
+        link.href = "javascript:void(0)";
+        link.className = "bx--tabs__nav-link";
+        link.setAttribute("role", "tab");
+        link.setAttribute("aria-selected", group === currentGroup ? "true" : "false");
+        link.textContent = labelize(group);
+        link.dataset.group = group;
+
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (currentGroup === group) return;
+
+          listContainer.querySelectorAll(".bx--tabs__nav-item").forEach((item) => {
+            item.classList.remove("bx--tabs__nav-item--selected");
+            const anchor = item.querySelector("a");
+            if (anchor) anchor.setAttribute("aria-selected", "false");
+          });
+          li.classList.add("bx--tabs__nav-item--selected");
+          link.setAttribute("aria-selected", "true");
+          currentGroup = group;
+          if (onTabClick) onTabClick(group);
+
+          const triggerText = tabsContainer.querySelector(".bx--tabs-trigger-text");
+          if (triggerText) {
+            triggerText.textContent = link.textContent;
+          }
+
+          // Apenas alterna a visibilidade dos grupos de campos, sem recriá-los
+          if (fieldsContainer) {
+            fieldsContainer.querySelectorAll(".form-group[data-group]").forEach((section) => {
+              section.classList.toggle("hidden", section.dataset.group !== currentGroup);
+            });
+          }
+        });
+
+        li.appendChild(link);
+        listContainer.appendChild(li);
+
+        const triggerText = tabsContainer.querySelector(".bx--tabs-trigger-text");
+        if (group === currentGroup && triggerText) {
+          triggerText.textContent = link.textContent;
+        }
+      });
+
+      tabsContainer.classList.remove("hidden");
+      renderFormFields(specs, fieldsContainer, currentGroup);
+    }
+
+    function updateInstanceListActions(wrapper) {
+      const select = wrapper.querySelector("select[data-role='instance-list-select']");
+      const hasSelection = select && select.selectedOptions && select.selectedOptions.length > 0;
+      wrapper.querySelectorAll("button[data-action='view'], button[data-action='remove']").forEach((btn) => {
+        btn.disabled = !hasSelection;
+      });
+    }
+
+    function updateStringListActions(wrapper) {
+      const select = wrapper.querySelector("select[data-role='string-list-select']");
+      const hasSelection = select && select.selectedOptions && select.selectedOptions.length > 0;
+      wrapper.querySelectorAll("button[data-action='view'], button[data-action='remove']").forEach((btn) => {
+        btn.disabled = !hasSelection;
+      });
+    }
+
+    function updateInstanceFieldActions(wrapper) {
+      const select = wrapper.querySelector("select[data-role='instance-field-select']");
+      const hasSelection = select && select.selectedOptions && select.selectedOptions.length > 0;
+      wrapper.querySelectorAll("button[data-action='view'], button[data-action='remove']").forEach((btn) => {
+        btn.disabled = !hasSelection;
+      });
+    }
+
+    function syncInstanceListHidden(wrapper) {
+      const hidden = wrapper.querySelector("input[type='hidden'][data-role='instance-list-value']");
+      const select = wrapper.querySelector("select[data-role='instance-list-select']");
+      if (!hidden || !select) return;
+      const items = Array.from(select.options || [])
+        .filter((opt) => opt.value)
+        .map((opt) => ({
+          id: opt.value,
+          name: opt.textContent || opt.value,
+          className: opt.dataset.className || ""
+        }));
+      hidden.value = JSON.stringify(items);
+    }
+
+    function syncStringListHidden(wrapper) {
+      const hidden = wrapper.querySelector("input[type='hidden'][data-role='string-list-value']");
+      const select = wrapper.querySelector("select[data-role='string-list-select']");
+      if (!hidden || !select) return;
+      const items = Array.from(select.options || [])
+        .filter((opt) => opt.value)
+        .map((opt) => opt.value || opt.textContent || "");
+      hidden.value = JSON.stringify(items);
+    }
+
+    function collectFormData(container) {
+      const data = {};
+      if (!container) return data;
+      container.querySelectorAll("[data-slot]").forEach((wrapper) => {
+        const slot = wrapper.dataset.slot;
+        if (!slot) return;
+        if (wrapper.dataset.widget === "InstanceListWidget") {
+          const hidden = wrapper.querySelector("input[type='hidden'][data-role='instance-list-value']");
+          if (hidden) {
+            try {
+              data[slot] = JSON.parse(hidden.value || "[]");
+            } catch (e) {
+              data[slot] = [];
+            }
+          }
+          return;
+        }
+        if (wrapper.dataset.widget === "InstanceFieldWidget") {
+          const hidden = wrapper.querySelector("input[type='hidden'][data-role='instance-field-value']");
+          const select = wrapper.querySelector("select[data-role='instance-field-select']");
+          if (hidden && select) {
+            try {
+              const base = JSON.parse(hidden.value || "[]");
+              const selectedId = (select.selectedOptions[0] || {}).value;
+              const match = base.find((item) => (item.id || "") === selectedId);
+              data[slot] = match || null;
+            } catch (e) {
+              data[slot] = null;
+            }
+          }
+          return;
+        }
+        if (wrapper.dataset.widget === "StringListWidget") {
+          const hidden = wrapper.querySelector("input[type='hidden'][data-role='string-list-value']");
+          if (hidden) {
+            try {
+              data[slot] = JSON.parse(hidden.value || "[]");
+            } catch (e) {
+              data[slot] = [];
+            }
+          }
+          return;
+        }
+        const input = wrapper.querySelector("input, textarea, select");
+        if (!input) return;
+        if (input.type === "checkbox") {
+          data[slot] = input.checked;
+        } else {
+          data[slot] = input.value;
+        }
+      });
+      return data;
+    }
+
+    function setSavingState(isSaving) {
+      if (saveBtn) {
+        saveBtn.disabled = isSaving || !isNameFilled(formFields);
+      }
+      const cancelBtn = document.getElementById("cancel-btn");
+      if (cancelBtn) {
+        cancelBtn.disabled = isSaving;
+      }
+      if (isSaving) {
+        showFormLoading();
+      } else {
+        hideFormLoading();
+      }
+    }
+
+    async function handleSave() {
+      hideFormError();
+      hideDeleteNotice();
+      saveNotice.classList.add("hidden");
+
+      if (!selectedTreeA) {
+        showFormError("Nenhuma classe selecionada.");
+        return;
+      }
+
+      const isNew = selectedTreeB === "new-instance";
+      const payload = { ...collectFormData(formFields), className: selectedTreeA };
+      if (!isNew && selectedTreeB) {
+        payload.id = selectedTreeB;
+      }
+      const url = isNew
+        ? `${instanceApiBase}`
+        : `${instanceApiBase}/${encodeURIComponent(selectedTreeB)}`;
+      const method = isNew ? "POST" : "PATCH";
+
+      setSavingState(true);
+      try {
+        console.log("Saved payload:", {
+          selectedTreeA,
+          selectedTreeB,
+          activeFormGroup,
+          data: payload
+        });
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          let errorText = "Erro ao salvar instância.";
+          try {
+            const errorJson = await response.json();
+            errorText = errorJson.error || errorText;
+          } catch (parseErr) {
+            const fallback = await response.text();
+            errorText = fallback || errorText;
+          }
+          throw new Error(errorText);
+        }
+        let responseData = null;
+        try {
+          responseData = await response.json();
+        } catch (_) {
+          responseData = null;
+        }
+        const responseId =
+          responseData?.id ||
+          responseData?.instance?.id ||
+          responseData?.data?.id ||
+          null;
+        const targetId = isNew ? responseId : selectedTreeB;
+        await loadInstancesForNode(selectedTreeA, { resetForm: false });
+        if (targetId) {
+          selectedTreeB = targetId;
+          refreshTreeB();
+          try {
+            currentInstanceData = await fetchInstanceById(targetId);
+          } catch (err) {
+            console.error(err);
+          }
+          activeFormGroup = chooseDefaultGroup(formSpecs, "principal");
+          renderFormTabs(formSpecs);
+          populateForm();
+        } else {
+          resetForm(true);
+        }
+        saveNotice.classList.remove("hidden");
+      } catch (err) {
+        console.error(err);
+        showFormError(err.message || "Erro ao salvar instância.");
+      } finally {
+        setSavingState(false);
+      }
+    }
+
+    document.getElementById("save-btn").addEventListener("click", handleSave);
+
+    document.getElementById("cancel-btn").addEventListener("click", resetForm);
+
+    async function deleteInstance(instanceId) {
+      const url = `${instanceApiBase}/${encodeURIComponent(instanceId)}`;
+      const response = await fetch(url, { method: "DELETE" });
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Erro ao deletar instância.");
+      }
+    }
+
+    async function performDeleteInstance(targetId) {
+      if (!targetId) return;
+      if (treeBDeleteBtn) treeBDeleteBtn.disabled = true;
+      try {
+        if (targetId !== "new-instance") {
+          await deleteInstance(targetId);
+        }
+        currentTreeBData = currentTreeBData.filter((node) => node.id !== targetId);
+        selectedTreeB = null;
+        currentInstanceData = null;
+        isCreatingNewInstance = false;
+        updateClassInstanceCount(selectedTreeA, currentTreeBData.length);
+        refreshTreeB();
+        form.classList.add("hidden");
+        formFields.innerHTML = "";
+        formPlaceholder.classList.add("hidden");
+        showDeleteNotice("Instance deleted successfully");
+      } catch (err) {
+        console.error(err);
+        showFormError(err.message || "Erro ao deletar instância.");
+        throw err;
+      } finally {
+        updateInstanceActions();
+      }
+    }
+
+    function handleDeleteInstance() {
+      if (!selectedTreeB || !deleteConfirmModal) return;
+      hideFormError();
+      hideDeleteNotice();
+      pendingDeleteId = selectedTreeB;
+      showModal(deleteConfirmModal);
+    }
+
+    async function confirmDeleteInstance() {
+      if (!pendingDeleteId) {
+        hideModal(deleteConfirmModal);
+        return;
+      }
+      const targetId = pendingDeleteId;
+      const button = deleteConfirmBtn;
+      if (button) {
+        button.disabled = true;
+        button.textContent = "Deleting...";
+      }
+      pendingDeleteId = null;
+      try {
+        await performDeleteInstance(targetId);
+      } catch (err) {
+        // Errors are already surfaced via showFormError; still close after response
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = "Deletar";
+        }
+        hideModal(deleteConfirmModal);
+      }
+    }
+
+    // --------------------------- RESIZE MECHANICS ----------------------------
+    // Resizable columns are implemented by tracking mouse drag on dividers and
+    // updating adjacent flex-basis values while respecting a minimum width.
+    const layout = document.getElementById("layout");
+    const dividers = document.querySelectorAll(".divider");
+    let isDragging = false;
+    let dragContext = null;
+
+    dividers.forEach((divider) => {
+      divider.addEventListener("mousedown", (e) => {
+        const leftId = divider.dataset.left;
+        const rightId = divider.dataset.right;
+        const leftEl = document.getElementById(leftId);
+        const rightEl = document.getElementById(rightId);
+        const thirdEl = leftId === "col-a" && rightId === "col-b" ? document.getElementById("col-c") : null;
+        const rightWidth = rightEl.getBoundingClientRect().width;
+        const thirdWidth = thirdEl ? thirdEl.getBoundingClientRect().width : 0;
+        dragContext = {
+          startX: e.clientX,
+          leftEl,
+          rightEl,
+          thirdEl,
+          leftWidth: leftEl.getBoundingClientRect().width,
+          rightWidth,
+          thirdWidth,
+          containerWidth: layout.getBoundingClientRect().width,
+          bcRatio: thirdEl && rightWidth + thirdWidth > 0 ? rightWidth / (rightWidth + thirdWidth) : 0
+        };
+        isDragging = true;
+        divider.classList.add("dragging");
+        document.body.style.userSelect = "none";
+      });
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging || !dragContext) return;
+      const delta = e.clientX - dragContext.startX;
+      const min = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--min-col-width"), 10);
+      const { thirdEl, containerWidth, bcRatio } = dragContext;
+
+      if (thirdEl) {
+        let newLeft = dragContext.leftWidth + delta;
+        const maxLeft = containerWidth - min * 2;
+        newLeft = Math.min(Math.max(newLeft, min), maxLeft);
+
+        const remaining = containerWidth - newLeft;
+        let newRight = remaining * bcRatio;
+        let newThird = remaining - newRight;
+
+        if (newRight < min) {
+          newRight = min;
+          newThird = remaining - newRight;
+        }
+        if (newThird < min) {
+          newThird = min;
+          newRight = remaining - newThird;
+        }
+
+        const leftPct = (newLeft / containerWidth) * 100;
+        const rightPct = (newRight / containerWidth) * 100;
+        const thirdPct = (newThird / containerWidth) * 100;
+
+        dragContext.leftEl.style.flexBasis = `${leftPct}%`;
+        dragContext.rightEl.style.flexBasis = `${rightPct}%`;
+        thirdEl.style.flexBasis = `${thirdPct}%`;
+      } else {
+        let newLeft = dragContext.leftWidth + delta;
+        let newRight = dragContext.rightWidth - delta;
+
+        if (newLeft < min || newRight < min) return;
+
+        const leftPct = (newLeft / containerWidth) * 100;
+        const rightPct = (newRight / containerWidth) * 100;
+
+        dragContext.leftEl.style.flexBasis = `${leftPct}%`;
+        dragContext.rightEl.style.flexBasis = `${rightPct}%`;
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (!isDragging) return;
+      isDragging = false;
+      document.querySelectorAll(".divider.dragging").forEach((d) => d.classList.remove("dragging"));
+      document.body.style.userSelect = "";
+      dragContext = null;
+    });
+
+    function setupTreeAKeyboardNavigation() {
+      if (treeAEl.getAttribute("tabindex") === null) {
+        treeAEl.setAttribute("tabindex", "0");
+      }
+
+      treeAEl.addEventListener("click", () => {
+        treeAEl.focus({ preventScroll: true });
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (!treeAEl.contains(document.activeElement)) return;
+        // console.log("keyboard", event.key);
+        const { key } = event;
+        if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) return;
+
+        const visibleNodes = getVisibleTreeANodes();
+        if (!visibleNodes.length) return;
+
+        const activeEl =
+          (document.activeElement && treeAEl.contains(document.activeElement) && document.activeElement.closest(".node")) ||
+          findNodeByKey(treeAEl, selectedTreeAKey) ||
+          visibleNodes[0];
+
+        const idx = visibleNodes.indexOf(activeEl);
+        const current = idx >= 0 ? activeEl : visibleNodes[0];
+
+        if (key === "ArrowDown") {
+          event.preventDefault();
+          const next = visibleNodes[Math.min(visibleNodes.indexOf(current) + 1, visibleNodes.length - 1)];
+          if (next) focusAndSelectTreeANode(next);
+          return;
+        }
+
+        if (key === "ArrowUp") {
+          event.preventDefault();
+          const prev = visibleNodes[Math.max(visibleNodes.indexOf(current) - 1, 0)];
+          if (prev) focusAndSelectTreeANode(prev);
+          return;
+        }
+
+        if (key === "ArrowRight") {
+          const target = current || visibleNodes[0];
+          const hasChildren = target?.dataset.hasChildren === "true";
+          const nodeId = target?.dataset.id;
+          if (hasChildren && nodeId && !expandedNodes.has(nodeId)) {
+            event.preventDefault();
+            expandedNodes.add(nodeId);
+            refreshTreeA();
+            const refreshed = findNodeByKey(treeAEl, buildNodeKey(nodeId, target.dataset.parentTree || ""));
+            if (refreshed) refreshed.focus();
+          }
+          return;
+        }
+
+        if (key === "ArrowLeft") {
+          const target = current || visibleNodes[0];
+          const nodeId = target?.dataset.id;
+          if (nodeId && expandedNodes.has(nodeId)) {
+            event.preventDefault();
+            expandedNodes.delete(nodeId);
+            refreshTreeA();
+            const refreshed = findNodeByKey(treeAEl, buildNodeKey(nodeId, target.dataset.parentTree || ""));
+            if (refreshed) refreshed.focus();
+          }
+          return;
+        }
+      });
+    }
+
+    // ------------------------------- BOOTSTRAP -------------------------------
+    loadRootClasses();
+    treeAEl.addEventListener("click", handleTreeAClick);
+    setupTreeAKeyboardNavigation();
+    treeBEl.addEventListener("click", handleTreeBSelection);
+    if (treeBNewBtn) treeBNewBtn.addEventListener("click", handleCreateNewInstance);
+    if (treeBDeleteBtn) treeBDeleteBtn.addEventListener("click", handleDeleteInstance);
+    if (deleteConfirmBtn) deleteConfirmBtn.addEventListener("click", confirmDeleteInstance);
+    if (formFields) {
+      formFields.addEventListener("input", updateSaveButtonState);
+      formFields.addEventListener("change", updateSaveButtonState);
+    }
+    filterInputA.addEventListener("input", () => refreshTreeA());
+    filterInputB.addEventListener("input", refreshTreeB);
+    updateInstanceActions();
+    updateSaveButtonState();
+  </script>
+  <script src="https://unpkg.com/carbon-components/scripts/carbon-components.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.CarbonComponents) {
+        CarbonComponents.watch();
+      }
+    });
+  </script>
