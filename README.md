@@ -4,6 +4,10 @@ Web-based administration interface for Essential Open Source, delivered as a sin
 
 > Pending: implementation of the Protégé GraphWidget.
 
+## Demo
+
+![App navigation walkthrough](assets/nav-capture.gif)
+
 ## Project Structure
 
 - `public/`: Contains the static web files (`index.html`, `the-essential-project.png`).
