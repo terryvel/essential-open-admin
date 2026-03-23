@@ -1,7 +1,16 @@
-FROM nginx:alpine
+FROM nginx:latest
 
 # Install envsubst
-RUN apk add --no-cache gettext
+RUN apt-get update && apt-get install -y gettext
+
+# Enable and install SSH for Azure
+# ssh root@127.0.0.1 -p 2222 -c aes256-cbc
+ENV SSH_PASSWD "root:Docker!"
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssh-server \
+    && echo "$SSH_PASSWD" | chpasswd 
+
+COPY sshd_config /etc/ssh/
 
 # Remove default nginx config
 RUN rm /etc/nginx/conf.d/default.conf
@@ -26,3 +35,4 @@ RUN chmod +x /docker-entrypoint.d/99-custom-entrypoint.sh
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
+
